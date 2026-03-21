@@ -7,7 +7,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Tabs, TabPanel } from '@/components/ui';
 import { useAuth } from '@/lib/auth-client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -45,25 +45,25 @@ export default function AssignmentsPage() {
 
   if (authLoading) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Assignments" />
         <div className="p-4">
           <Skeleton height={400} />
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   if (!isOwner) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Assignments" />
         <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
@@ -166,7 +166,7 @@ export default function AssignmentsPage() {
   const pastCount = windows.filter(w => w.status === 'past').length;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Assignment Windows"
         description="Manage sitter assignment windows for client threads"
@@ -407,6 +407,6 @@ export default function AssignmentsPage() {
           </Modal>
         )}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

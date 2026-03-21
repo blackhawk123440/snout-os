@@ -22,13 +22,19 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-openphone-signature') || '';
     const secret = process.env.OPENPHONE_WEBHOOK_SECRET;
 
-    if (secret && !verifyOpenPhoneSignature(rawBody, signature, secret)) {
+    // Fail closed: reject if webhook secret is not configured
+    if (!secret) {
+      console.error('[OpenPhone Webhook] OPENPHONE_WEBHOOK_SECRET not set — rejecting request');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+    }
+
+    if (!verifyOpenPhoneSignature(rawBody, signature, secret)) {
       await logEvent({
         orgId: 'unknown',
         action: 'message.webhook.openphone.invalid_signature',
         entityType: 'webhook',
       });
-      return jsonOk();
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody);

@@ -1,10 +1,10 @@
 /**
  * BottomSheet Component
  * UI Constitution V1 - Overlay Component
- * 
+ *
  * Mobile primary overlay pattern with optional drag handle.
  * Escape closes.
- * 
+ *
  * @example
  * ```tsx
  * <BottomSheet
@@ -22,7 +22,6 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
 
@@ -77,86 +76,33 @@ export function BottomSheet({
       <div
         data-testid="bottom-sheet-backdrop"
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
-          zIndex: tokens.z.layer.overlay,
-          transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
-          opacity: isOpen ? 1 : 0,
-        }}
+        className="fixed inset-0 z-layer-overlay transition-opacity duration-150 ease-decelerated"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', opacity: isOpen ? 1 : 0 }}
       />
-      
+
       {/* Bottom Sheet */}
       <div
         ref={sheetRef}
         data-testid={testId || 'bottom-sheet'}
-        className={cn('bottom-sheet', className)}
+        className={cn('fixed bottom-0 left-0 right-0 max-h-[90vh] bg-surface-overlay rounded-t-2xl shadow-xl z-layer-modal flex flex-col overflow-hidden transition-transform duration-normal ease-in-out', className)}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}
         tabIndex={-1}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: '90vh',
-          backgroundColor: tokens.colors.surface.overlay, // Phase 8: Use overlay surface
-          borderTopLeftRadius: tokens.radius['2xl'], // Phase 8: Larger radius for modern feel
-          borderTopRightRadius: tokens.radius['2xl'],
-          boxShadow: tokens.shadow.xl, // Phase 8: Stronger shadow
-          zIndex: tokens.z.layer.modal,
-          display: 'flex',
-          flexDirection: 'column',
-          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
-          overflow: 'hidden',
-        }}
       >
         {/* Drag Handle */}
         {dragHandle && (
-          <div
-            style={{
-              paddingTop: tokens.spacing[3],
-              display: 'flex',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '4px',
-                backgroundColor: tokens.colors.border.default,
-                borderRadius: tokens.radius.full,
-              }}
-            />
+          <div className="pt-3 flex justify-center shrink-0">
+            <div className="w-10 h-1 bg-border-default rounded-full" />
           </div>
         )}
-        
+
         {/* Header */}
         {title && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: tokens.spacing[6], // Phase 8: Increased padding
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              flexShrink: 0,
-            }}
-          >
+          <div className="flex items-center justify-between p-6 border-b border-border-default shrink-0">
             <h2
               id="bottom-sheet-title"
-              style={{
-                fontSize: tokens.typography.fontSize.xl[0],
-                fontWeight: tokens.typography.fontWeight.bold,
-                color: tokens.colors.text.primary,
-                margin: 0,
-              }}
+              className="text-xl font-bold text-text-primary m-0"
             >
               {title}
             </h2>
@@ -168,20 +114,13 @@ export function BottomSheet({
             />
           </div>
         )}
-        
+
         {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            padding: tokens.spacing[4],
-            overflowY: 'auto',
-            minHeight: 0,
-          }}
-        >
+        <div className="flex-1 p-4 overflow-y-auto min-h-0">
           {children}
         </div>
       </div>
-      
+
       <style jsx>{`
         @keyframes fadeIn {
           from {

@@ -12,6 +12,7 @@ import {
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
+import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   useClientBookingDetail,
@@ -189,13 +190,9 @@ export default function ClientBookingDetailPage() {
           {canCancel && (
             <div>
               {!showCancelConfirm ? (
-                <button
-                  type="button"
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="w-full min-h-[44px] rounded-lg border border-status-danger-border text-sm font-medium text-status-danger-text hover:bg-status-danger-bg transition"
-                >
+                <Button variant="danger" size="md" onClick={() => setShowCancelConfirm(true)} className="w-full">
                   Cancel booking
-                </button>
+                </Button>
               ) : (
                 <AppCard className="border-status-danger-border">
                   <AppCardBody>
@@ -205,12 +202,12 @@ export default function ClientBookingDetailPage() {
                     )}
                     <p className="mt-1 text-sm text-text-secondary">This cannot be undone.</p>
                     <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={handleCancel} disabled={cancelMutation.isPending} className="min-h-[44px] flex-1 rounded-lg bg-status-danger-fill px-4 text-sm font-semibold text-status-danger-text-on-fill hover:bg-status-danger-fill-hover transition disabled:opacity-50">
-                        {cancelMutation.isPending ? 'Cancelling\u2026' : 'Yes, cancel'}
-                      </button>
-                      <button type="button" onClick={() => setShowCancelConfirm(false)} className="min-h-[44px] flex-1 rounded-lg border border-border-default px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition">
+                      <Button variant="danger" size="md" onClick={handleCancel} disabled={cancelMutation.isPending} isLoading={cancelMutation.isPending} className="flex-1">
+                        Yes, cancel
+                      </Button>
+                      <Button variant="secondary" size="md" onClick={() => setShowCancelConfirm(false)} className="flex-1">
                         Keep booking
-                      </button>
+                      </Button>
                     </div>
                   </AppCardBody>
                 </AppCard>
@@ -242,9 +239,9 @@ export default function ClientBookingDetailPage() {
                         className={`${inputClass} resize-y`}
                       />
                       <div className="flex gap-2">
-                        <button type="button" onClick={handleComplaint} disabled={complaintMutation.isPending} className="min-h-[44px] flex-1 rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">
-                          {complaintMutation.isPending ? 'Submitting\u2026' : 'Submit'}
-                        </button>
+                        <Button variant="primary" size="md" onClick={handleComplaint} disabled={complaintMutation.isPending} isLoading={complaintMutation.isPending} className="flex-1">
+                          Submit
+                        </Button>
                         <button type="button" onClick={() => setShowComplaint(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">
                           Cancel
                         </button>

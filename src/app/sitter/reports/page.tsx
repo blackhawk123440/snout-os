@@ -19,7 +19,7 @@ function formatDate(iso: string) {
 
 function StarRating({ rating }: { rating: number }) {
   return (
-    <span className="text-xs text-amber-600" aria-label={`${rating} star${rating !== 1 ? 's' : ''}`}>
+    <span className="text-xs text-status-warning-text-secondary" aria-label={`${rating} star${rating !== 1 ? 's' : ''}`}>
       {Array.from({ length: rating }, (_, i) => (
         <span key={i} aria-hidden="true">*</span>
       )).length > 0 && `${'★'.repeat(rating)}`}

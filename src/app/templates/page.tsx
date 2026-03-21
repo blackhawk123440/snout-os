@@ -21,7 +21,7 @@ import {
   Grid,
   GridCol,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 import { Plus, ClipboardList } from 'lucide-react';
 
@@ -102,7 +102,7 @@ export default function TemplatesPage() {
   ];
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Message Templates"
         description="Manage all message templates"
@@ -238,6 +238,6 @@ export default function TemplatesPage() {
           </Flex>
         )}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

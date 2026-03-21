@@ -984,7 +984,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         >
           <Card
             style={{ maxWidth: '42rem', maxHeight: '80vh', overflowY: 'auto' }}
-            className="bg-white"
+            className="bg-surface-primary"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -1046,7 +1046,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         >
           <Card
             style={{ maxWidth: '28rem' }}
-            className="bg-white"
+            className="bg-surface-primary"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -1089,7 +1089,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         >
           <Card
             style={{ maxWidth: '28rem' }}
-            className="bg-white"
+            className="bg-surface-primary"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">

@@ -11,6 +11,7 @@ import {
   AppSkeletonList,
   AppErrorState,
 } from '@/components/app';
+import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   useClientPetDetail,
@@ -342,21 +343,8 @@ function EditableTextSection({
               />
             )}
             <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
+              <Button variant="secondary" size="md" onClick={handleCancel}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleSave} disabled={saving} isLoading={saving}>Save</Button>
             </div>
           </div>
         ) : (
@@ -422,21 +410,8 @@ function DualFieldEditor({
           </div>
         ))}
         <div className="flex gap-2 justify-end">
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
+          <Button variant="primary" size="md" onClick={handleSave} disabled={saving} isLoading={saving}>Save</Button>
         </div>
       </div>
     );
@@ -551,8 +526,8 @@ function VetSection({
               <input type="text" value={draft.vetAddress} onChange={(e) => setDraft((d) => ({ ...d, vetAddress: e.target.value }))} placeholder="123 Main St, Madison AL" className={inputClass} />
             </div>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">Cancel</button>
-              <button type="button" onClick={handleSave} disabled={saving} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
+              <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleSave} disabled={saving} isLoading={saving}>Save</Button>
             </div>
           </div>
         ) : hasVet ? (
@@ -649,8 +624,8 @@ function HealthTimelineSection({
               autoFocus
             />
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => { setAdding(false); setNote(''); }} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">Cancel</button>
-              <button type="button" onClick={handleSubmit} disabled={addHealthLog.isPending || !note.trim()} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{addHealthLog.isPending ? 'Adding...' : 'Add'}</button>
+              <Button variant="secondary" size="md" onClick={() => { setAdding(false); setNote(''); }}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleSubmit} disabled={addHealthLog.isPending || !note.trim()} isLoading={addHealthLog.isPending}>Add</Button>
             </div>
           </div>
         )}

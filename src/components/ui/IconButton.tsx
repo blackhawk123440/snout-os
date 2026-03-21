@@ -1,9 +1,9 @@
 /**
  * IconButton Component
  * UI Constitution V1 - Control Component
- * 
+ *
  * Icon-only button with variants, sizes, loading state, and full accessibility.
- * 
+ *
  * @example
  * ```tsx
  * <IconButton
@@ -19,7 +19,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { Size, Variant } from './types';
 import { cn } from './utils';
@@ -36,6 +35,23 @@ export interface IconButtonProps {
   'data-testid'?: string;
 }
 
+const variantClasses: Record<string, string> = {
+  primary: 'bg-primary text-white border border-primary',
+  secondary: 'bg-surface-primary text-text-primary border border-border-default',
+  ghost: 'bg-transparent text-text-secondary border border-transparent hover:bg-accent-secondary hover:text-text-primary',
+  destructive: 'bg-error text-white border border-error',
+  error: 'bg-error text-white border border-error',
+  success: 'bg-success text-white border border-success',
+  warning: 'bg-warning text-white border border-warning',
+  info: 'bg-blue-500 text-white border border-blue-500',
+};
+
+const sizeClasses: Record<string, string> = {
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
+};
+
 export function IconButton({
   icon,
   variant = 'ghost',
@@ -50,140 +66,41 @@ export function IconButton({
   const isMobile = useMobile();
   const effectiveDisabled = disabled || loading;
 
-  const variantStyles = {
-    primary: {
-      backgroundColor: tokens.colors.primary.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.primary.DEFAULT}`,
-    },
-    secondary: {
-      backgroundColor: tokens.colors.surface.primary,
-      color: tokens.colors.text.primary,
-      border: `1px solid ${tokens.colors.border.default}`,
-    },
-    ghost: {
-      backgroundColor: 'transparent',
-      color: tokens.colors.text.secondary,
-      border: '1px solid transparent',
-    },
-    destructive: {
-      backgroundColor: tokens.colors.error.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.error.DEFAULT}`,
-    },
-    error: {
-      backgroundColor: tokens.colors.error.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.error.DEFAULT}`,
-    },
-    success: {
-      backgroundColor: tokens.colors.success.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.success.DEFAULT}`,
-    },
-    warning: {
-      backgroundColor: tokens.colors.warning.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.warning.DEFAULT}`,
-    },
-    info: {
-      backgroundColor: tokens.colors.info.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.info.DEFAULT}`,
-    },
+  const sizePixels: Record<string, { width: string; height: string }> = {
+    sm: { width: isMobile ? '44px' : '32px', height: isMobile ? '44px' : '32px' },
+    md: { width: '44px', height: '44px' },
+    lg: { width: '48px', height: '48px' },
   };
-
-  const sizeStyles = {
-    sm: {
-      width: isMobile ? '44px' : '32px',
-      height: isMobile ? '44px' : '32px',
-      fontSize: tokens.typography.fontSize.sm[0],
-    },
-    md: {
-      width: '44px',
-      height: '44px',
-      fontSize: tokens.typography.fontSize.base[0],
-    },
-    lg: {
-      width: '48px',
-      height: '48px',
-      fontSize: tokens.typography.fontSize.lg[0],
-    },
-  };
-
-  const baseStyles = variantStyles[variant] || variantStyles.ghost;
-  const sizeConfig = sizeStyles[size];
 
   return (
     <button
       data-testid={testId || 'icon-button'}
-      className={cn('icon-button', className)}
+      className={cn(
+        'inline-flex items-center justify-center rounded-xl p-0 relative',
+        'transition-all duration-150 ease-in-out',
+        'focus:outline-2 focus:outline-border-focus focus:outline-offset-2',
+        variantClasses[variant] || variantClasses.ghost,
+        sizeClasses[size],
+        effectiveDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+        className
+      )}
+      style={sizePixels[size]}
       type="button"
       onClick={onClick}
       disabled={effectiveDisabled}
       aria-label={loading ? `${ariaLabel} (loading)` : ariaLabel}
       aria-busy={loading}
-      style={{
-        ...baseStyles,
-        ...sizeConfig,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: tokens.radius.md,
-        padding: 0,
-        cursor: effectiveDisabled ? 'not-allowed' : 'pointer',
-        opacity: effectiveDisabled ? 0.6 : 1,
-        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`,
-        border: baseStyles.border,
-        position: 'relative',
-      }}
-      onMouseEnter={(e) => {
-        if (!effectiveDisabled && variant === 'ghost') {
-          e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
-          e.currentTarget.style.color = tokens.colors.text.primary;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!effectiveDisabled && variant === 'ghost') {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = tokens.colors.text.secondary;
-        }
-      }}
-      onFocus={(e) => {
-        if (!effectiveDisabled) {
-          e.currentTarget.style.outline = `2px solid ${tokens.colors.border.focus}`;
-          e.currentTarget.style.outlineOffset = '2px';
-        }
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.outline = 'none';
-      }}
     >
       {loading ? (
         <span
-          style={{
-            display: 'inline-block',
-            width: '16px',
-            height: '16px',
-            border: `2px solid ${variant === 'ghost' ? tokens.colors.text.secondary : 'currentColor'}`,
-            borderTopColor: 'transparent',
-            borderRadius: '50%',
-            animation: 'spin 0.6s linear infinite',
-          }}
+          className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
           aria-hidden="true"
         />
       ) : (
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="flex items-center justify-center">
           {icon}
         </span>
       )}
-      <style jsx>{`
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
     </button>
   );
 }

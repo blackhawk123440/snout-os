@@ -18,7 +18,7 @@ import {
   Skeleton,
   Flex,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { AUTOMATION_TYPE_IDS, type AutomationTypeId } from '@/lib/automations/types';
 
 const TYPE_META: Record<
@@ -187,17 +187,17 @@ export default function AutomationTypeEditorPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Edit automation" />
         <div className="p-6">
           <Skeleton height={400} />
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title={meta.name}
         description={meta.description}
@@ -294,6 +294,6 @@ export default function AutomationTypeEditorPage() {
           <Link href="/ops/automation-failures">View automation failures</Link> for debugging.
         </p>
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

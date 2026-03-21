@@ -70,7 +70,7 @@ export function VisitTimerDisplay({
       )}
       {completed && (
         <>
-          <p className="font-semibold text-green-700">Visit complete</p>
+          <p className="font-semibold text-status-success-text">Visit complete</p>
           <p>Started at {formatTime(checkedInAt)}</p>
           <p>Ended at {formatTime(checkedOutAt)}</p>
           <p className="tabular-nums font-medium text-text-primary">

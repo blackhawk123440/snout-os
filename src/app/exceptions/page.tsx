@@ -25,7 +25,7 @@ import {
   Grid,
   GridCol,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 
 interface Exception {
@@ -143,7 +143,7 @@ export default function ExceptionsPage() {
   ];
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Exception Queue"
         description="Unpaid, unassigned, drift, and automation failures"
@@ -326,6 +326,6 @@ export default function ExceptionsPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

@@ -12,7 +12,7 @@ import {
   Skeleton,
 } from '@/components/ui';
 import { Switch } from '@/components/ui/Switch';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 
 interface AutomationItem {
@@ -101,7 +101,7 @@ export default function AutomationSettingsPage() {
   const saving = toggleMutation.isPending ? (toggleMutation.variables?.id ?? null) : resetMutation.isPending ? 'reset' : null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <PageHeader
           title="Automations"
@@ -185,6 +185,6 @@ export default function AutomationSettingsPage() {
           </Link>
         </div>
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

@@ -1,11 +1,11 @@
 /**
  * TopBar Component
  * UI Constitution V1 - Layout Primitive
- * 
+ *
  * Fixed height navigation bar with title, breadcrumb, and action slots.
  * Header-only component - no navigation behavior (use AppShell for pages).
  * No sticky behavior - must be inside PageShell or similar container.
- * 
+ *
  * @example
  * ```tsx
  * <TopBar
@@ -21,7 +21,6 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { tokens } from '@/lib/design-tokens';
 import { cn } from './utils';
 
 export interface BreadcrumbItem {
@@ -51,100 +50,44 @@ export function TopBar({
   return (
     <header
       data-testid={testId || 'top-bar'}
-      className={cn('top-bar', className)}
-      style={{
-        height: tokens.layout.appShell.topBarHeight,
-        minHeight: tokens.layout.appShell.topBarHeight,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: `0 ${tokens.spacing[2]}`, // Phase B3: Tighter padding
-        backgroundColor: 'transparent', // Phase B3: No background
-        borderBottom: 'none', // Phase B3: No border, cleaner
-        flexShrink: 0,
-        width: '100%',
-        marginBottom: tokens.spacing[2], // Phase B3: Small gap before content
-      }}
+      className={cn('flex items-center justify-between px-2 shrink-0 w-full mb-2', className)}
+      style={{ height: '3.5rem', minHeight: '3.5rem' }}
     >
         {/* Left Section */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[4],
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* Phase E: Removed hamburger menu button - AppShell handles navigation */}
 
           {leftActions && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-            }}
-          >
+          <div className="flex items-center gap-2">
             {leftActions}
           </div>
         )}
-        
+
         {/* Breadcrumb */}
         {breadcrumb && breadcrumb.length > 0 && (
           <nav
             aria-label="Breadcrumb"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-            }}
+            className="flex items-center gap-2"
           >
             {breadcrumb.map((item, index) => (
               <div
                 key={index}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[2],
-                }}
+                className="flex items-center gap-2"
               >
                 {item.href ? (
                   <Link
                     href={item.href}
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      textDecoration: 'none',
-                      transition: `color ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = tokens.colors.text.primary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = tokens.colors.text.secondary;
-                    }}
+                    className="text-sm text-text-secondary no-underline transition-colors duration-150 ease-in-out hover:text-text-primary"
                   >
                     {item.label}
                   </Link>
                 ) : (
-                  <span
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.primary,
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                    }}
-                  >
+                  <span className="text-sm text-text-primary font-semibold">
                     {item.label}
                   </span>
                 )}
                 {index < breadcrumb.length - 1 && (
-                  <span
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.tertiary,
-                    }}
-                  >
+                  <span className="text-sm text-text-tertiary">
                     /
                   </span>
                 )}
@@ -152,34 +95,18 @@ export function TopBar({
             ))}
           </nav>
         )}
-        
+
         {/* Title - Phase B3: Authoritative page title */}
         {title && !breadcrumb && (
-          <h1
-            style={{
-              fontSize: tokens.typography.fontSize['2xl'][0], // Phase B3: Larger
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.text.primary,
-              margin: 0,
-              letterSpacing: '-0.02em', // Phase B3: Tight tracking
-              lineHeight: '1.2',
-            }}
-          >
+          <h1 className="text-2xl font-bold text-text-primary m-0 tracking-tight leading-[1.2]">
             {title}
           </h1>
         )}
       </div>
-      
+
       {/* Right Section */}
       {rightActions && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[2],
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex items-center gap-2 shrink-0">
           {rightActions}
         </div>
       )}

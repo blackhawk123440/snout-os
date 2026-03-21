@@ -6,6 +6,7 @@ import { LayoutWrapper } from '@/components/layout';
 import { AppPageHeader } from '@/components/app';
 import { AppCard, AppCardBody } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { Button } from '@/components/ui';
 import { useCreateClientPet } from '@/lib/api/client-hooks';
 
 const SPECIES_OPTIONS = ['Dog', 'Cat', 'Bird', 'Fish', 'Reptile', 'Other'];
@@ -156,13 +157,9 @@ export default function NewPetPage() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={createPet.isPending || !form.name.trim()}
-              className="w-full min-h-[44px] rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
-            >
-              {createPet.isPending ? 'Adding...' : 'Add pet'}
-            </button>
+            <Button type="submit" variant="primary" size="md" disabled={createPet.isPending || !form.name.trim()} isLoading={createPet.isPending} className="w-full">
+              Add pet
+            </Button>
           </form>
         </AppCardBody>
       </AppCard>

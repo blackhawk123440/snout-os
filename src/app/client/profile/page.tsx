@@ -67,25 +67,25 @@ export default function ClientProfilePage() {
             <EmergencyContactsSection contacts={contacts} onChanged={refetch} />
             <ReferralSection />
 
-            <div className="rounded-xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)]">
+            <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
               <div className="space-y-2">
                 <a href="/client/settings/export" className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary">
                   Export your data
                 </a>
-                <button type="button" onClick={() => signOut({ callbackUrl: '/login' })} className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary">
+                <Button variant="secondary" size="md" onClick={() => signOut({ callbackUrl: '/login' })} className="w-full">
                   Sign out
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* Danger zone — separated with gap and border */}
             <div className="pt-12 mt-8 border-t border-border-muted">
-              <div className="rounded-xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
                 <p className="mb-2 text-sm font-medium text-text-primary">Delete account</p>
                 <p className="mb-3 text-xs text-text-tertiary">Permanently delete your account. This cannot be undone.</p>
-                <button type="button" onClick={() => setDeleteModalOpen(true)} className="min-h-[44px] rounded-lg border border-status-danger-border px-4 text-sm font-medium text-status-danger-text hover:bg-status-danger-bg transition">
+                <Button variant="danger" size="md" onClick={() => setDeleteModalOpen(true)}>
                   Delete account
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@ function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; on
       <AppCardHeader>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary">Personal Info</h3>
-          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-[#c2410c] hover:underline">Edit</button>}
+          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Edit</button>}
         </div>
       </AppCardHeader>
       <AppCardBody>
@@ -160,8 +160,8 @@ function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; on
             <div><label className="block text-xs text-text-tertiary mb-1">Phone</label><input type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} className={inputClass} /></div>
             <div><label className="block text-xs text-text-tertiary mb-1">Address</label><input value={draft.address} onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))} placeholder="123 Main St, City, State" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleSave} disabled={updateProfile.isPending} className="min-h-[44px] rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] disabled:opacity-50">{updateProfile.isPending ? 'Saving\u2026' : 'Save'}</button>
+              <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleSave} disabled={updateProfile.isPending} isLoading={updateProfile.isPending}>Save</Button>
             </div>
           </div>
         ) : (
@@ -212,9 +212,9 @@ function ReferralSection() {
               <div className="rounded-lg border border-border-default bg-surface-secondary px-4 py-2 font-mono text-sm font-semibold text-text-primary tracking-wider">
                 {data.referralCode}
               </div>
-              <button type="button" onClick={handleCopy} className="min-h-[44px] rounded-lg border border-border-default px-4 text-sm font-medium text-[#c2410c] hover:bg-surface-secondary transition">
+              <Button variant="secondary" size="md" onClick={handleCopy}>
                 {copied ? 'Copied!' : 'Copy code'}
-              </button>
+              </Button>
             </div>
             {data.referralCount > 0 && (
               <p className="text-xs text-text-tertiary">
@@ -241,7 +241,7 @@ function MaskedField({ label, value }: { label: string; value: string | null }) 
         <p className="text-xs text-text-tertiary">{label}</p>
         <p className="text-sm text-text-primary font-mono">{revealed ? value : '\u2022\u2022\u2022\u2022\u2022\u2022'}</p>
       </div>
-      <button type="button" onClick={() => setRevealed(!revealed)} className="min-h-[44px] min-w-[44px] text-xs font-medium text-[#c2410c] hover:underline">
+      <button type="button" onClick={() => setRevealed(!revealed)} className="min-h-[44px] min-w-[44px] text-xs font-medium text-accent-primary hover:underline">
         {revealed ? 'Hide' : 'Show'}
       </button>
     </div>
@@ -283,7 +283,7 @@ function HomeAccessSection({ data, onSaved }: { data: ClientProfileData; onSaved
       <AppCardHeader>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2"><Home size={18} /> Home Access</h3>
-          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-[#c2410c] hover:underline">Edit</button>}
+          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Edit</button>}
         </div>
       </AppCardHeader>
       <AppCardBody>
@@ -299,8 +299,8 @@ function HomeAccessSection({ data, onSaved }: { data: ClientProfileData; onSaved
             <div><label className="block text-xs text-text-tertiary mb-1">Entry instructions</label><textarea value={draft.entryInstructions} onChange={(e) => setDraft((d) => ({ ...d, entryInstructions: e.target.value }))} rows={2} placeholder="Use side gate, ring doorbell\u2026" className={`${inputClass} resize-y`} /></div>
             <div><label className="block text-xs text-text-tertiary mb-1">Parking</label><input value={draft.parkingNotes} onChange={(e) => setDraft((d) => ({ ...d, parkingNotes: e.target.value }))} placeholder="Driveway, street parking\u2026" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleSave} disabled={updateProfile.isPending} className="min-h-[44px] rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] disabled:opacity-50">{updateProfile.isPending ? 'Saving\u2026' : 'Save'}</button>
+              <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleSave} disabled={updateProfile.isPending} isLoading={updateProfile.isPending}>Save</Button>
             </div>
           </div>
         ) : hasAny ? (
@@ -353,7 +353,7 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
       <AppCardHeader>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2"><Phone size={18} /> Emergency Contacts</h3>
-          {!adding && <button type="button" onClick={() => setAdding(true)} className="min-h-[44px] text-sm font-medium text-[#c2410c] hover:underline">Add</button>}
+          {!adding && <button type="button" onClick={() => setAdding(true)} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Add</button>}
         </div>
       </AppCardHeader>
       <AppCardBody>
@@ -363,7 +363,7 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
               <div key={c.id} className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium text-text-primary">{c.name}{c.relationship ? ` (${c.relationship})` : ''}</p>
-                  <a href={`tel:${c.phone}`} className="text-sm text-[#c2410c] hover:underline">{c.phone}</a>
+                  <a href={`tel:${c.phone}`} className="text-sm text-accent-primary hover:underline">{c.phone}</a>
                 </div>
                 <button type="button" onClick={() => handleDelete(c.id)} className="min-h-[44px] min-w-[44px] text-xs text-status-danger-text-secondary hover:underline">Remove</button>
               </div>
@@ -379,8 +379,8 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
             <input type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} placeholder="Phone number" className={inputClass} />
             <input value={draft.relationship} onChange={(e) => setDraft((d) => ({ ...d, relationship: e.target.value }))} placeholder="Relationship (optional)" className={inputClass} />
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setAdding(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleAdd} disabled={addContact.isPending} className="min-h-[44px] rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] disabled:opacity-50">{addContact.isPending ? 'Adding\u2026' : 'Add'}</button>
+              <Button variant="secondary" size="md" onClick={() => setAdding(false)}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={handleAdd} disabled={addContact.isPending} isLoading={addContact.isPending}>Add</Button>
             </div>
           </div>
         )}

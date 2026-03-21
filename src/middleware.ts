@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
         }
         // Page routes: redirect to sitter today (avoids 403 on HTML, better UX)
         if (!pathname.startsWith('/api/')) {
-          return NextResponse.redirect(new URL('/sitter/today', request.url));
+          return NextResponse.redirect(new URL('/sitter/dashboard', request.url));
         }
         return NextResponse.json(
           { error: "Access denied: This route is not available to sitters" },

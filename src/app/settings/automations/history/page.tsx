@@ -13,7 +13,7 @@ import {
   EmptyState,
   Skeleton,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 
 interface AutomationRun {
@@ -102,7 +102,7 @@ export default function AutomationHistoryPage() {
   };
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <PageHeader
           title="Automation History"
@@ -197,6 +197,6 @@ export default function AutomationHistoryPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

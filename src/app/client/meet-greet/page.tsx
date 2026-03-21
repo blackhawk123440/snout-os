@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/layout';
 import { AppCard, AppCardBody, AppPageHeader } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { Button } from '@/components/ui';
 import { useSubmitMeetGreet } from '@/lib/api/client-hooks';
 
 const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-border-focus focus:outline-none';
@@ -42,9 +43,9 @@ export default function MeetGreetPage() {
             <div className="text-center py-4">
               <p className="text-lg font-semibold text-text-primary">Request sent!</p>
               <p className="mt-1 text-sm text-text-secondary">We'll be in touch to schedule your meet & greet.</p>
-              <button type="button" onClick={() => router.push('/client/home')} className="mt-4 min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition">
+              <Button variant="primary" size="md" onClick={() => router.push('/client/home')} className="mt-4">
                 Back to home
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -72,9 +73,9 @@ export default function MeetGreetPage() {
                   className={`${inputClass} resize-y`}
                 />
               </div>
-              <button type="button" onClick={handleSubmit} disabled={submitMutation.isPending} className="w-full min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">
-                {submitMutation.isPending ? 'Sending\u2026' : 'Request meet & greet'}
-              </button>
+              <Button variant="primary" size="md" onClick={handleSubmit} disabled={submitMutation.isPending} isLoading={submitMutation.isPending} className="w-full">
+                Request meet & greet
+              </Button>
             </div>
           )}
         </AppCardBody>

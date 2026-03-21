@@ -14,7 +14,7 @@ type SessionUser = {
 const getRedirectForRole = (user: SessionUser): string => {
   const normalizedRole = String(user.role || '').toUpperCase();
   if (normalizedRole === 'CLIENT' || !!user.clientId) return '/client/home';
-  if (normalizedRole === 'SITTER' || !!user.sitterId) return '/sitter/today';
+  if (normalizedRole === 'SITTER' || !!user.sitterId) return '/sitter/dashboard';
   if (normalizedRole === 'OWNER' || normalizedRole === 'ADMIN') return '/dashboard';
   return '/dashboard';
 };

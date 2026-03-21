@@ -8,7 +8,16 @@ import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/
 import { AppErrorState, AppFilterBar, getStatusPill } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button } from '@/components/ui';
 import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
-import { StatusChip } from '@/components/ui/status-chip';
+import { StatusChip, StatusChipVariant } from '@/components/ui/status-chip';
+import type { StatusPillVariant } from '@/components/app';
+
+const pillToChip: Record<StatusPillVariant, StatusChipVariant> = {
+  default: 'neutral',
+  success: 'success',
+  warning: 'warning',
+  error: 'danger',
+  info: 'info',
+};
 
 type BookingRow = {
   id: string;
@@ -182,7 +191,7 @@ export default function BookingsEnterprisePage() {
                       mobileLabel: 'Status',
                       render: (r) => {
                         const pill = getStatusPill(r.status);
-                        return <StatusChip variant="neutral" ariaLabel={`Booking status: ${pill.label}`}>{pill.label}</StatusChip>;
+                        return <StatusChip variant={pillToChip[pill.variant]} ariaLabel={`Booking status: ${pill.label}`}>{pill.label}</StatusChip>;
                       },
                     },
                     {

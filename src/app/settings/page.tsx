@@ -28,7 +28,7 @@ import {
   Badge,
   EmptyState,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { AppPageHeader } from '@/components/app';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -70,7 +70,7 @@ function SettingsContent() {
   }, [sectionParam]);
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <AppPageHeader
         title="Settings"
         subtitle="Business, services, pricing, notifications, and advanced configuration"
@@ -105,13 +105,13 @@ function SettingsContent() {
           ))}
         </Tabs>
       )}
-    </AppShell>
+    </OwnerAppShell>
   );
 }
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<AppShell><AppPageHeader title="Settings" subtitle="Loading…" /><Card><Skeleton height={400} /></Card></AppShell>}>
+    <Suspense fallback={<OwnerAppShell><AppPageHeader title="Settings" subtitle="Loading…" /><Card><Skeleton height={400} /></Card></OwnerAppShell>}>
       <SettingsContent />
     </Suspense>
   );

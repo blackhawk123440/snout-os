@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutWrapper } from '@/components/layout';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell, LayoutWrapper } from '@/components/layout';
 import { PageHeader, Card, Button, Input } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { ProviderMessageLog } from '@/components/messaging/ProviderMessageLog';
@@ -74,7 +73,7 @@ export default function OpenPhoneSetupPage() {
   });
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader title="OpenPhone Setup" description="Configure OpenPhone messaging" />
 
@@ -163,6 +162,6 @@ export default function OpenPhoneSetupPage() {
           )}
         </div>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

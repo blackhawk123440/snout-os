@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
+import { Icon } from '@/components/ui/Icon';
 import { LayoutWrapper } from '@/components/layout';
-import { SITTER_PROFILE_LINKS } from '@/lib/sitter-nav';
+import { SITTER_MORE_LINKS } from '@/lib/sitter-nav';
 import { toastError } from '@/lib/toast';
 import {
   SitterCard,
@@ -15,7 +17,6 @@ import {
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
-  FeatureStatusPill,
 } from '@/components/sitter';
 import {
   useSitterProfile,
@@ -126,9 +127,9 @@ export default function SitterProfilePage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <SitterPageHeader title="Profile" subtitle="Your sitter profile" />
+      <SitterPageHeader title="Profile" subtitle="Account and settings" />
       {loading ? (
-        <SitterSkeletonList count={2} />
+        <SitterSkeletonList count={3} />
       ) : error ? (
         <SitterErrorState
           title="Couldn't load profile"
@@ -137,111 +138,40 @@ export default function SitterProfilePage() {
         />
       ) : profile ? (
         <div className="space-y-4">
+          {/* ── Personal Info ────────────────────────────────────────── */}
           <SitterCard>
-            <SitterCardHeader>
+            <SitterCardBody>
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-status-info-bg text-xl font-semibold text-status-info-text">
-                  {profile.name.charAt(0).toUpperCase() || 'S'}
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-secondary text-xl font-semibold text-text-brand">
+                  {(profile.name || 'S').charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <p className="text-lg font-semibold text-text-primary">{profile.name}</p>
-                  <p className="text-sm text-text-secondary">{profile.email}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-semibold text-text-primary truncate">{profile.name}</p>
+                  <p className="text-sm text-text-secondary truncate">{profile.email}</p>
+                  {profile.phone && (
+                    <p className="text-sm text-text-tertiary">{profile.phone}</p>
+                  )}
                 </div>
-              </div>
-            </SitterCardHeader>
-            <SitterCardBody>
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="font-medium text-text-tertiary">Phone</dt>
-                  <dd className="text-text-primary">{profile.phone || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-text-tertiary">Status</dt>
-                  <dd>
-                    <StatusChip variant={profile.active ? 'success' : 'neutral'}>
-                      {profile.active ? 'Active' : 'Inactive'}
-                    </StatusChip>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-text-tertiary">Commission</dt>
-                  <dd className="text-text-primary">{profile.commissionPercentage}%</dd>
-                </div>
-              </dl>
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard>
-            <SitterCardHeader>
-              <p className="text-base font-semibold text-text-primary">Stripe Connect</p>
-            </SitterCardHeader>
-            <SitterCardBody>
-              <div className="mb-3 flex items-center gap-2">
-                <StatusChip variant={stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'success' : 'warning'}>
-                  {stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'Stripe connected' : 'Stripe setup required'}
+                <StatusChip variant={profile.active ? 'success' : 'neutral'}>
+                  {profile.active ? 'Active' : 'Inactive'}
                 </StatusChip>
               </div>
-              {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
-                <p className="text-sm text-status-success-text-secondary">Connected · Payouts enabled</p>
-              ) : stripeStatus?.connected ? (
-                <p className="text-sm text-status-warning-text-secondary">Connected · Complete onboarding to receive payouts</p>
-              ) : (
-                <>
-                  <p className="mb-3 text-sm text-text-secondary">Connect your Stripe account to receive payouts from completed bookings.</p>
-                  <Button variant="primary" size="md" onClick={() => void handleConnectStripe()} disabled={connectStripe.isPending}>
-                    {connectStripe.isPending ? 'Connecting...' : 'Connect Stripe account'}
-                  </Button>
-                </>
-              )}
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard className="border-dashed">
-            <SitterCardBody>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-text-secondary">Verification status</p>
-                <FeatureStatusPill featureKey="verification" />
-              </div>
-            </SitterCardBody>
-          </SitterCard>
-          <SitterCard className="border-dashed">
-            <SitterCardBody>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-text-secondary">Documents</p>
-                <FeatureStatusPill featureKey="documents" />
-              </div>
-            </SitterCardBody>
-          </SitterCard>
-          <SitterCard className="border-dashed">
-            <SitterCardBody>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-text-secondary">Offline mode</p>
-                <FeatureStatusPill featureKey="offline_mode" />
+              <div className="mt-4 flex items-center gap-4 border-t border-border-default pt-4">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Commission</p>
+                  <p className="text-sm font-semibold text-text-primary">{profile.commissionPercentage}%</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Status</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {availabilityEnabled ? 'Available' : 'Off duty'}
+                  </p>
+                </div>
               </div>
             </SitterCardBody>
           </SitterCard>
 
-          <SitterCard>
-            <SitterCardHeader>
-              <h3 className="text-base font-semibold text-text-primary">Dashboard</h3>
-            </SitterCardHeader>
-            <SitterCardBody className="pt-0">
-              <nav className="space-y-1">
-                {SITTER_PROFILE_LINKS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
-                  >
-                    <i className={`${item.icon} w-5 text-center text-text-tertiary`} />
-                    {item.label}
-                    <FeatureStatusPill featureKey={item.href.replace('/sitter/', '').split('/')[0]} className="ml-auto" />
-                  </Link>
-                ))}
-              </nav>
-            </SitterCardBody>
-          </SitterCard>
-
+          {/* ── Availability ─────────────────────────────────────────── */}
           <SitterCard>
             <SitterCardHeader>
               <h3 className="text-base font-semibold text-text-primary">Availability</h3>
@@ -278,7 +208,7 @@ export default function SitterProfilePage() {
                     type="date"
                     value={newBlockDate}
                     onChange={(e) => setNewBlockDate(e.target.value)}
-                    className="rounded-xl border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
+                    className="rounded-xl border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
                   />
                   <Button
                     variant="secondary"
@@ -297,7 +227,7 @@ export default function SitterProfilePage() {
                         <button
                           type="button"
                           onClick={() => void handleRemoveBlockOff(b.id)}
-                          className="text-status-danger-text-secondary hover:text-status-danger-text"
+                          className="text-status-danger-text-secondary hover:text-status-danger-text text-sm"
                         >
                           Remove
                         </button>
@@ -309,22 +239,76 @@ export default function SitterProfilePage() {
             </SitterCardBody>
           </SitterCard>
 
-          <SitterCard className="border-status-danger-border">
+          {/* ── Stripe Connect ───────────────────────────────────────── */}
+          <SitterCard>
             <SitterCardHeader>
-              <p className="text-base font-semibold text-text-primary">Delete account</p>
+              <div className="flex items-center justify-between">
+                <p className="text-base font-semibold text-text-primary">Payouts</p>
+                <StatusChip variant={stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'success' : 'warning'}>
+                  {stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'Connected' : 'Setup required'}
+                </StatusChip>
+              </div>
             </SitterCardHeader>
             <SitterCardBody>
-              <p className="mb-3 text-sm text-text-secondary">
-                Permanently delete your sitter account. This cannot be undone. You will be signed out immediately.
-              </p>
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => setDeleteModalOpen(true)}
-                className="border-status-danger-border text-status-danger-text hover:bg-status-danger-bg"
-              >
-                Delete account
-              </Button>
+              {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
+                <p className="text-sm text-text-secondary">Stripe connected. Payouts are enabled.</p>
+              ) : stripeStatus?.connected ? (
+                <>
+                  <p className="text-sm text-text-secondary mb-3">Stripe connected but onboarding is incomplete. Complete setup to receive payouts.</p>
+                  <Button variant="primary" size="md" onClick={() => void handleConnectStripe()} disabled={connectStripe.isPending}>
+                    {connectStripe.isPending ? 'Loading...' : 'Complete setup'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm text-text-secondary">Connect your Stripe account to receive payouts from completed bookings.</p>
+                  <Button variant="primary" size="md" onClick={() => void handleConnectStripe()} disabled={connectStripe.isPending}>
+                    {connectStripe.isPending ? 'Connecting...' : 'Connect Stripe'}
+                  </Button>
+                </>
+              )}
+            </SitterCardBody>
+          </SitterCard>
+
+          {/* ── More ─────────────────────────────────────────────────── */}
+          <SitterCard>
+            <SitterCardHeader>
+              <h3 className="text-base font-semibold text-text-primary">More</h3>
+            </SitterCardHeader>
+            <SitterCardBody className="pt-0">
+              <nav className="divide-y divide-border-muted -mx-5">
+                {SITTER_MORE_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex min-h-[48px] items-center gap-3 px-5 py-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
+                  >
+                    <Icon name={item.icon} className="w-4 h-4 text-text-tertiary shrink-0" />
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-text-disabled shrink-0" />
+                  </Link>
+                ))}
+              </nav>
+            </SitterCardBody>
+          </SitterCard>
+
+          {/* ── Danger Zone ──────────────────────────────────────────── */}
+          <SitterCard className="border-status-danger-border">
+            <SitterCardBody>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">Delete account</p>
+                  <p className="text-xs text-text-tertiary">Permanently remove your sitter account</p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="border-status-danger-border text-status-danger-text hover:bg-status-danger-bg shrink-0"
+                >
+                  Delete
+                </Button>
+              </div>
             </SitterCardBody>
           </SitterCard>
         </div>

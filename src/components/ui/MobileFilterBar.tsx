@@ -1,6 +1,6 @@
 /**
  * MobileFilterBar Component
- * 
+ *
  * Standardized horizontal scrolling filter bar for mobile-first filter UI.
  * Part C: Prevents smashed filter bars by using proper spacing and horizontal scroll.
  */
@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { tokens } from '@/lib/design-tokens';
+import { cn } from './utils';
 import { useMobile } from '@/lib/use-mobile';
 
 export interface FilterOption {
@@ -35,36 +35,21 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
 
   return (
     <div
-      style={{
-        position: sticky ? 'sticky' : 'relative',
-        top: sticky ? 0 : 'auto',
-        zIndex: sticky ? tokens.zIndex.sticky : 'auto',
-        backgroundColor: tokens.colors.background.primary,
-        borderBottom: `1px solid ${tokens.colors.border.default}`,
-        paddingTop: tokens.spacing[3],
-        paddingBottom: tokens.spacing[3],
-        paddingLeft: tokens.spacing[4],
-        paddingRight: tokens.spacing[4],
-        marginLeft: `-${tokens.spacing[4]}`,
-        marginRight: `-${tokens.spacing[4]}`,
-        marginBottom: tokens.spacing[4],
-      }}
+      className={cn(
+        'bg-white border-b border-border-default py-3 px-4 -mx-4 mb-4',
+        sticky && 'sticky top-0 z-[1020]',
+        !sticky && 'relative'
+      )}
     >
       <div
+        className="mobile-filter-bar flex gap-2 overflow-x-auto overflow-y-hidden pb-[2px]"
         style={{
-          display: 'flex',
-          gap: tokens.spacing[2],
-          overflowX: 'auto',
-          overflowY: 'hidden',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'thin',
-          paddingBottom: '2px', // Space for scrollbar
-          // Hide scrollbar on mobile while keeping scroll functionality
           ...(isMobile && {
-            msOverflowStyle: '-ms-autohiding-scrollbar',
+            msOverflowStyle: '-ms-autohiding-scrollbar' as any,
           }),
         }}
-        className="mobile-filter-bar"
       >
         {options.map((option) => {
           const isActive = activeFilter === option.id;
@@ -74,62 +59,51 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
               type="button"
               disabled={option.disabled}
               onClick={() => !option.disabled && onFilterChange(option.id)}
+              className={cn(
+                'flex items-center gap-2 shrink-0 min-h-[2.5rem] whitespace-nowrap',
+                'text-sm rounded-full px-4 py-2 border transition-all duration-200',
+                isActive && 'font-semibold',
+                !isActive && 'font-medium',
+                option.disabled && 'cursor-not-allowed opacity-50',
+                !option.disabled && 'cursor-pointer'
+              )}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: tokens.spacing[2],
-                padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
-                border: `1px solid ${isActive ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                borderRadius: tokens.borderRadius.full,
                 backgroundColor: isActive
-                  ? tokens.colors.primary.DEFAULT
-                  : tokens.colors.background.primary,
+                  ? 'var(--color-primary, #432f21)'
+                  : 'var(--color-surface-primary, #ffffff)',
                 color: isActive
-                  ? tokens.colors.text.inverse
+                  ? '#ffffff'
                   : option.disabled
-                  ? tokens.colors.text.disabled
-                  : tokens.colors.text.primary,
-                fontWeight: isActive
-                  ? tokens.typography.fontWeight.semibold
-                  : tokens.typography.fontWeight.medium,
-                fontSize: tokens.typography.fontSize.sm[0],
-                cursor: option.disabled ? 'not-allowed' : 'pointer',
-                transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                whiteSpace: 'nowrap',
-                flexShrink: 0, // Prevent filter chips from shrinking
-                minHeight: '2.5rem', // Minimum touch target
-                opacity: option.disabled ? 0.5 : 1,
+                  ? 'var(--color-text-disabled, #a3a3a3)'
+                  : 'var(--color-text-primary, #432f21)',
+                borderColor: isActive
+                  ? 'var(--color-primary, #432f21)'
+                  : 'var(--color-border-default, #e5e5e5)',
               }}
               onMouseEnter={(e) => {
                 if (!option.disabled && !isActive) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  e.currentTarget.style.backgroundColor = 'var(--color-surface-secondary, #faf9f8)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = isActive
-                    ? tokens.colors.primary.DEFAULT
-                    : tokens.colors.background.primary;
+                    ? 'var(--color-primary, #432f21)'
+                    : 'var(--color-surface-primary, #ffffff)';
                 }
               }}
             >
               <span>{option.label}</span>
               {option.badge !== undefined && option.badge > 0 && (
                 <span
+                  className="rounded-full px-2 py-1 text-xs font-bold min-w-[1.25rem] text-center leading-none"
                   style={{
                     backgroundColor: isActive
-                      ? tokens.colors.text.inverse
-                      : tokens.colors.primary.DEFAULT,
+                      ? '#ffffff'
+                      : 'var(--color-primary, #432f21)',
                     color: isActive
-                      ? tokens.colors.primary.DEFAULT
-                      : tokens.colors.text.inverse,
-                    borderRadius: tokens.borderRadius.full,
-                    padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                    fontSize: tokens.typography.fontSize.xs[0],
-                    fontWeight: tokens.typography.fontWeight.bold,
-                    minWidth: '1.25rem',
-                    textAlign: 'center',
-                    lineHeight: 1,
+                      ? 'var(--color-primary, #432f21)'
+                      : '#ffffff',
                   }}
                 >
                   {option.badge}
@@ -144,17 +118,16 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
           height: 4px;
         }
         .mobile-filter-bar::-webkit-scrollbar-track {
-          background: ${tokens.colors.background.secondary};
+          background: var(--color-surface-secondary, #faf9f8);
         }
         .mobile-filter-bar::-webkit-scrollbar-thumb {
-          background: ${tokens.colors.border.default};
-          border-radius: ${tokens.borderRadius.full};
+          background: var(--color-border-default, #e5e5e5);
+          border-radius: var(--radius-full, 9999px);
         }
         .mobile-filter-bar::-webkit-scrollbar-thumb:hover {
-          background: ${tokens.colors.text.secondary};
+          background: var(--color-text-secondary, #525252);
         }
       `}</style>
     </div>
   );
 };
-

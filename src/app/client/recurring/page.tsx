@@ -92,7 +92,7 @@ export default function ClientRecurringPage() {
       {isLoading ? (
         <AppSkeletonList count={3} />
       ) : schedules.length === 0 ? (
-        <div className="rounded-xl border border-border-default bg-white p-8 text-center">
+        <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
           <h2 className="text-lg font-semibold text-text-primary mb-1">No recurring schedules</h2>
           <p className="text-sm text-text-secondary mb-4">
             Set up a regular schedule so you never have to book the same service twice.
@@ -191,7 +191,7 @@ function ScheduleCard({
     : schedule.frequency;
 
   return (
-    <div className="rounded-xl border border-border-default bg-white p-4 hover:shadow-sm transition-shadow">
+    <div className="rounded-xl border border-border-default bg-surface-primary p-4 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">

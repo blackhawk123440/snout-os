@@ -7,18 +7,18 @@ import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
-import { PageSkeleton } from '@/components/ui';
+import { Button, PageSkeleton } from '@/components/ui';
 import { renderClientPreview } from '@/lib/strip-emojis';
 import { useClientHome, useClientOnboardingStatus } from '@/lib/api/client-hooks';
 
 function statusBadge(status: string) {
   const s = status.toLowerCase();
-  let cls = 'bg-stone-100 text-stone-500';
+  let cls = 'bg-surface-secondary text-text-secondary';
   let label = status;
-  if (s === 'pending' || s === 'requested') { cls = 'bg-amber-50 text-amber-700 border border-amber-200'; label = 'Pending'; }
-  else if (s === 'confirmed' || s === 'scheduled') { cls = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; label = 'Confirmed'; }
-  else if (s === 'completed') { cls = 'bg-stone-100 text-stone-500'; label = 'Completed'; }
-  else if (s === 'cancelled' || s === 'canceled') { cls = 'bg-red-50 text-red-600 border border-red-200'; label = 'Cancelled'; }
+  if (s === 'pending' || s === 'requested') { cls = 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'; label = 'Pending'; }
+  else if (s === 'confirmed' || s === 'scheduled') { cls = 'bg-status-success-bg text-status-success-text border border-status-success-border'; label = 'Confirmed'; }
+  else if (s === 'completed') { cls = 'bg-surface-secondary text-text-secondary'; label = 'Completed'; }
+  else if (s === 'cancelled' || s === 'canceled') { cls = 'bg-status-danger-bg text-status-danger-text border border-status-danger-border'; label = 'Cancelled'; }
   return <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${cls}`}>{label}</span>;
 }
 
@@ -75,7 +75,7 @@ export default function ClientHomePage() {
 
             {/* Onboarding checklist */}
             {onboarding && onboarding.completionPercent < 100 && !onboardingDismissed && (
-              <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
+              <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-semibold text-text-primary font-heading">Complete your profile</p>
                   <button
@@ -115,17 +115,17 @@ export default function ClientHomePage() {
                   ))}
                 </div>
                 <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
-                  <div className="h-full rounded-full bg-[#c2410c] transition-[width]" style={{ width: `${onboarding.completionPercent}%` }} />
+                  <div className="h-full rounded-full bg-accent-primary transition-[width]" style={{ width: `${onboarding.completionPercent}%` }} />
                 </div>
               </div>
             )}
 
             {/* Next Visit Hero Card */}
             {nextVisit ? (
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 via-white to-orange-50/30 border border-orange-100/60 p-6 shadow-[0_2px_12px_rgba(194,65,12,0.06),0_0_0_1px_rgba(194,65,12,0.04)]">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-secondary via-surface-primary to-accent-secondary/30 border border-accent-secondary p-6 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-orange-400 mb-2">Next visit</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-accent-primary/60 mb-2">Next visit</p>
                     <h2 className="text-[22px] font-bold text-text-primary font-heading leading-snug">
                       {nextVisit.service}
                     </h2>
@@ -133,15 +133,13 @@ export default function ClientHomePage() {
                       {formatDate(nextVisit.startAt)} at {formatTime(nextVisit.startAt)}
                     </p>
                   </div>
-                  <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center shadow-sm ring-2 ring-white">
-                    <span className="text-[22px] font-bold text-orange-600">{nextVisit.service?.[0] || 'V'}</span>
+                  <div className="w-[56px] h-[56px] rounded-2xl bg-accent-secondary flex items-center justify-center shadow-sm ring-2 ring-surface-primary">
+                    <span className="text-[22px] font-bold text-accent-primary">{nextVisit.service?.[0] || 'V'}</span>
                   </div>
                 </div>
                 <div className="mt-5">
                   <Link href={`/client/bookings/${nextVisit.id}`}>
-                    <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
-                      View details
-                    </button>
+                    <Button variant="primary" size="md">View details</Button>
                   </Link>
                 </div>
               </div>
@@ -152,9 +150,7 @@ export default function ClientHomePage() {
                   Book a visit and we&apos;ll take great care of them.
                 </p>
                 <Link href="/client/bookings/new">
-                  <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
-                    Book a visit
-                  </button>
+                  <Button variant="primary" size="md">Book a visit</Button>
                 </Link>
                 <div className="mt-3">
                   <Link href="/client/meet-greet" className="text-[13px] font-medium text-text-tertiary hover:text-text-secondary transition-colors">
@@ -175,14 +171,14 @@ export default function ClientHomePage() {
               })();
               return reportPhotoUrl ? (
                 <div
-                  className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
+                  className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
                   onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
                 >
                   <img src={reportPhotoUrl} alt="Visit photo" className="w-full h-[180px] object-cover" />
                   <div className="p-5">
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">Latest report</p>
-                      <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-[#c2410c] hover:underline">
+                      <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-accent-primary hover:underline">
                         All reports
                       </Link>
                     </div>
@@ -197,12 +193,12 @@ export default function ClientHomePage() {
                 </div>
               ) : (
                 <div
-                  className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
+                  className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
                   onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">Latest report</p>
-                    <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-[#c2410c] hover:underline">
+                    <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-accent-primary hover:underline">
                       All reports
                     </Link>
                   </div>
@@ -224,7 +220,7 @@ export default function ClientHomePage() {
             {data.recentBookings?.length > 0 && (
               <section aria-label="Upcoming and recent visits">
                 <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-text-tertiary mb-3">Upcoming &amp; recent</h3>
-                <div className="rounded-2xl border border-border-default bg-white divide-y divide-border-muted shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
+                <div className="rounded-2xl border border-border-default bg-surface-primary divide-y divide-border-muted shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
                   {data.recentBookings.map((b) => (
                     <div
                       key={b.id}
@@ -250,9 +246,7 @@ export default function ClientHomePage() {
                   Book your first visit and your sitter will share updates here.
                 </p>
                 <Link href="/client/bookings/new">
-                  <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
-                    Book a visit
-                  </button>
+                  <Button variant="primary" size="md">Book a visit</Button>
                 </Link>
               </div>
             )}
@@ -277,7 +271,7 @@ function QuickRebookCard() {
   if (!data?.canQuickRebook || !data.lastBooking) return null;
 
   return (
-    <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
+    <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary mb-2">Quick rebook</p>
       <h3 className="text-[16px] font-semibold text-text-primary">
         {data.suggestedService || data.lastBooking.service}
@@ -287,13 +281,7 @@ function QuickRebookCard() {
       )}
       <p className="text-[13px] text-text-tertiary mt-0.5">Based on your booking history</p>
       <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}
-          className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-5 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200"
-        >
-          Book again
-        </button>
+        <Button variant="primary" size="md" onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}>Book again</Button>
       </div>
     </div>
   );

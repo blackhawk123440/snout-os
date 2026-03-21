@@ -1,9 +1,9 @@
 /**
  * DataRow Component
  * UI Constitution V1 - Data Component
- * 
+ *
  * Label-value layout with optional copy affordance and truncation rules.
- * 
+ *
  * @example
  * ```tsx
  * <DataRow
@@ -18,7 +18,6 @@
 
 import { ReactNode, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
 
@@ -52,46 +51,17 @@ export function DataRow({
   return (
     <div
       data-testid={testId || 'data-row'}
-      className={cn('data-row', className)}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: tokens.spacing[4],
-        padding: `${tokens.spacing[3]} 0`,
-        borderBottom: `1px solid ${tokens.colors.border.muted}`,
-      }}
+      className={cn('flex items-start gap-4 py-3 border-b border-border-muted', className)}
     >
-      <div
-        style={{
-          minWidth: '120px',
-          flexShrink: 0,
-          fontSize: tokens.typography.fontSize.sm[0],
-          fontWeight: tokens.typography.fontWeight.medium,
-          color: tokens.colors.text.secondary,
-        }}
-      >
+      <div className="min-w-[120px] shrink-0 text-sm font-medium text-text-secondary">
         {label}
       </div>
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: tokens.spacing[2],
-        }}
-      >
+      <div className="flex-1 min-w-0 flex items-center gap-2">
         <div
-          style={{
-            flex: 1,
-            fontSize: tokens.typography.fontSize.base[0],
-            color: tokens.colors.text.primary,
-            ...(truncate && {
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }),
-          }}
+          className={cn(
+            'flex-1 text-base text-text-primary',
+            truncate && 'overflow-hidden text-ellipsis whitespace-nowrap'
+          )}
         >
           {value}
         </div>

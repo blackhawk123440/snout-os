@@ -102,7 +102,7 @@ export function DiagnosticsPanel({
   return (
     <div className="fixed bottom-5 right-5 z-[1000] max-w-[400px]">
       <Card
-        className="bg-white shadow-lg"
+        className="bg-surface-primary shadow-lg"
         style={{ border: `2px solid ${borderColor}` }}
       >
         <div className="p-3">

@@ -95,6 +95,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
   };
 
   const isActive = (href: string) => {
+    if (href === '/sitter/dashboard') return pathname === '/sitter/dashboard';
     if (href === '/sitter/today') return pathname === '/sitter/today';
     if (href === '/sitter/inbox') return pathname.startsWith('/sitter/inbox') || pathname.startsWith('/sitter/messages');
     return pathname.startsWith(href);

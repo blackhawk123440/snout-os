@@ -1,10 +1,10 @@
 /**
  * Drawer Component
  * UI Constitution V1 - Overlay Component
- * 
+ *
  * Side drawer overlay with right and left placements.
  * Mobile default pattern for navigation.
- * 
+ *
  * @example
  * ```tsx
  * <Drawer
@@ -22,7 +22,6 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
 
@@ -51,6 +50,8 @@ export function Drawer({
   const backdropRef = useRef<HTMLDivElement>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
 
+  const drawerWidth = width || '16rem';
+
   useEffect(() => {
     if (isOpen) {
       previousActiveRef.current = document.activeElement as HTMLElement | null;
@@ -78,8 +79,6 @@ export function Drawer({
 
   if (!isOpen) return null;
 
-  const drawerWidth = width || tokens.layout.appShell.sidebarWidth;
-
   return (
     <>
       {/* Backdrop */}
@@ -87,66 +86,27 @@ export function Drawer({
         ref={backdropRef}
         data-testid="drawer-backdrop"
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.3)', // Phase B2: Lighter backdrop
-          zIndex: tokens.z.layer.overlay,
-          transition: `opacity ${tokens.motion.duration.normal} ${tokens.motion.easing.decelerated}`, // Phase B4: Slower fade
-          opacity: isOpen ? 1 : 0,
-        }}
+        className="fixed inset-0 z-layer-overlay transition-opacity duration-normal ease-decelerated"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', opacity: isOpen ? 1 : 0 }}
       />
-      
+
       {/* Drawer */}
       <div
         ref={drawerRef}
         data-testid={testId || 'drawer'}
-        className={cn('drawer', className)}
+        className={cn('fixed top-0 bottom-0 max-w-[90vw] bg-surface-overlay shadow-lg z-layer-modal flex flex-col overflow-y-auto overflow-x-hidden transition-transform duration-normal ease-decelerated', className)}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'drawer-title' : undefined}
         tabIndex={-1}
-        style={{
-          position: 'fixed',
-          top: 0,
-          [placement]: 0,
-          bottom: 0,
-          width: drawerWidth,
-          maxWidth: '90vw',
-          backgroundColor: tokens.colors.surface.overlay, // Phase B2: Pure white
-          boxShadow: tokens.shadow.lg, // Phase B2: Strong shadow for drawer
-          zIndex: tokens.z.layer.modal,
-          display: 'flex',
-          flexDirection: 'column',
-          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.decelerated}`, // Phase B4: Smooth ease-out
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}
+        style={{ [placement]: 0, width: drawerWidth }}
       >
         {/* Header */}
         {title && (
-          <div
-            style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: tokens.spacing[6], // Phase 8: Increased padding
-            borderBottom: `1px solid ${tokens.colors.border.default}`,
-            flexShrink: 0,
-            }}
-          >
+          <div className="flex items-center justify-between p-6 border-b border-border-default shrink-0">
             <h2
               id="drawer-title"
-              style={{
-              fontSize: tokens.typography.fontSize['2xl'][0], // Phase 8: Larger heading
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.text.primary,
-              margin: 0,
-              letterSpacing: tokens.typography.letterSpacing.tight, // Phase 8: Tighter tracking
-              }}
+              className="text-2xl font-bold text-text-primary m-0 tracking-tight"
             >
               {title}
             </h2>
@@ -158,20 +118,13 @@ export function Drawer({
             />
           </div>
         )}
-        
+
         {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            padding: tokens.spacing[6], // Phase 8: Increased padding
-            overflowY: 'auto',
-            minHeight: 0,
-          }}
-        >
+        <div className="flex-1 p-6 overflow-y-auto min-h-0">
           {children}
         </div>
       </div>
-      
+
       <style jsx>{`
         @keyframes fadeIn {
           from {

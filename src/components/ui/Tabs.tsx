@@ -1,13 +1,13 @@
 /**
  * Tabs Component
- * 
+ *
  * Enterprise tab navigation component.
  * On mobile, tabs scroll horizontally with proper spacing.
  */
 
 import React, { useState, createContext, useContext } from 'react';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { cn } from './utils';
 
 export interface Tab {
   id: string;
@@ -65,23 +65,11 @@ export const Tabs: React.FC<TabsProps> = ({
       <div>
         {!hideHeader && (
         <div
-          className="tabs-header"
-          style={{
-            display: 'flex',
-            gap: isMobile ? tokens.spacing[1] : tokens.spacing[2],
-            borderBottom: `1px solid ${tokens.colors.border.default}`, // Phase 8: Subtler border
-            marginBottom: isMobile ? tokens.spacing[3] : tokens.spacing[4],
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            flexShrink: 0,
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            paddingBottom: '2px',
-            ...(isMobile && {
-              paddingLeft: tokens.spacing[3],
-              paddingRight: tokens.spacing[3],
-            }),
-          }}
+          className={cn(
+            'flex border-b border-border-default overflow-x-auto overflow-y-hidden shrink-0 pb-[2px]',
+            isMobile ? 'gap-1 mb-3 px-3' : 'gap-2 mb-4'
+          )}
+          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -91,65 +79,23 @@ export const Tabs: React.FC<TabsProps> = ({
                 type="button"
                 disabled={tab.disabled}
                 onClick={() => !tab.disabled && handleTabChange(tab.id)}
+                className={cn(
+                  'flex items-center gap-2 bg-transparent border-t-0 border-l-0 border-r-0 -mb-[2px] shrink-0 whitespace-nowrap min-h-[2.75rem]',
+                  'transition-all duration-150 ease-in-out',
+                  isMobile ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base',
+                  isActive ? 'font-semibold' : 'font-normal',
+                  tab.disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                  !tab.disabled && !isActive && 'hover:text-text-primary'
+                )}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[2],
-                  padding: isMobile
-                    ? `${tokens.spacing[2]} ${tokens.spacing[3]}`
-                    : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                  borderBottom: `2px solid ${isActive ? tokens.colors.primary.DEFAULT : 'transparent'}`,
-                  marginBottom: '-2px',
-                  backgroundColor: 'transparent',
-                  borderTop: 'none',
-                  borderLeft: 'none',
-                  borderRight: 'none',
-                  color: isActive
-                    ? tokens.colors.primary.DEFAULT
-                    : tab.disabled
-                    ? tokens.colors.text.disabled
-                    : tokens.colors.text.secondary,
-                  fontWeight: isActive
-                    ? tokens.typography.fontWeight.semibold
-                    : tokens.typography.fontWeight.normal,
-                  fontSize: isMobile
-                    ? tokens.typography.fontSize.sm[0]
-                    : tokens.typography.fontSize.base[0],
-                  lineHeight: 'normal',
-                  cursor: tab.disabled ? 'not-allowed' : 'pointer',
-                  transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  minHeight: '2.75rem', // 44px - consistent across mobile and desktop to prevent clipping
-                }}
-                onMouseEnter={(e) => {
-                  if (!tab.disabled && !isActive) {
-                    e.currentTarget.style.color = tokens.colors.text.primary;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = tab.disabled
-                      ? tokens.colors.text.disabled
-                      : tokens.colors.text.secondary;
-                  }
+                  borderBottom: isActive ? '2px solid var(--color-text-primary)' : '2px solid transparent',
+                  color: isActive ? 'var(--color-text-primary)' : tab.disabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)',
                 }}
               >
-                {tab.icon && <span style={{ display: 'flex', alignItems: 'center' }}>{tab.icon}</span>}
-                <span style={{ lineHeight: 'normal' }}>{tab.label}</span>
+                {tab.icon && <span className="flex items-center">{tab.icon}</span>}
+                <span className="leading-normal">{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span
-                    style={{
-                      backgroundColor: tokens.colors.error.DEFAULT,
-                      color: tokens.colors.text.inverse,
-                      borderRadius: tokens.borderRadius.full,
-                      padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                      fontSize: tokens.typography.fontSize.xs[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      minWidth: '1.25rem',
-                      textAlign: 'center',
-                    }}
-                  >
+                  <span className="bg-error text-white rounded-full px-2 py-1 text-xs font-semibold min-w-[1.25rem] text-center">
                     {tab.badge}
                   </span>
                 )}
@@ -176,4 +122,3 @@ export const TabPanel: React.FC<TabPanelProps> = ({ id, children, className, sty
   if (activeTab !== id) return null;
   return <div className={className} style={style}>{children}</div>;
 };
-

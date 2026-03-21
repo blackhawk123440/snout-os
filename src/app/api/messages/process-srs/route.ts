@@ -21,6 +21,14 @@ import { prisma } from '@/lib/db';
 import { processMessageEvent } from '@/lib/tiers/message-instrumentation';
 
 export async function POST(request: NextRequest) {
+  // Require INTERNAL_API_KEY for server-to-server calls
+  const authHeader = request.headers.get('authorization');
+  const expectedKey = process.env.INTERNAL_API_KEY;
+
+  if (!expectedKey || !authHeader || authHeader !== `Bearer ${expectedKey}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const {

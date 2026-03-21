@@ -20,7 +20,7 @@ import {
   Skeleton,
   FormRow,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
 
 export default function EditTemplatePage() {
@@ -123,7 +123,7 @@ export default function EditTemplatePage() {
   ];
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Edit Template"
         description="Update your message template"
@@ -248,6 +248,6 @@ export default function EditTemplatePage() {
           </>
         )}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

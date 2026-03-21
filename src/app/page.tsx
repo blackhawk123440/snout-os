@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
@@ -131,7 +131,7 @@ export default function DashboardHomePage() {
   }
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Dashboard"
         description="Overview of your pet care business operations"
@@ -255,6 +255,6 @@ export default function DashboardHomePage() {
           </Link>
         </div>
       </Card>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

@@ -9,6 +9,7 @@ import {
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
+import { Button } from '@/components/ui';
 import { useClientBookings, type ClientBooking } from '@/lib/api/client-hooks';
 
 const pageSize = 20;
@@ -71,15 +72,13 @@ export default function ClientBookingsPage() {
         ) : error ? (
           <AppErrorState title="Couldn't load bookings" subtitle={error.message || 'Unable to load bookings'} onRetry={handleRefresh} />
         ) : displayed.length === 0 ? (
-          <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+          <div className="rounded-2xl border border-border-default bg-surface-primary p-12 text-center">
             <h2 className="text-lg font-semibold text-text-primary mb-2">No visits yet</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
               Book your first visit and we&apos;ll handle the rest.
             </p>
             <Link href="/client/bookings/new">
-              <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all">
-                Book a visit
-              </button>
+              <Button variant="primary" size="md">Book a visit</Button>
             </Link>
           </div>
         ) : (
@@ -93,7 +92,7 @@ export default function ClientBookingsPage() {
                   onClick={() => setActiveTab(tab)}
                   className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                     activeTab === tab
-                      ? 'bg-white shadow-sm text-text-primary'
+                      ? 'bg-surface-primary shadow-sm text-text-primary'
                       : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
@@ -106,7 +105,7 @@ export default function ClientBookingsPage() {
             <div className="space-y-3">
               {filtered.map((booking) => (
                 <Link key={booking.id} href={`/client/bookings/${booking.id}`}>
-                  <div className="rounded-xl border border-border-default bg-white p-4 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
+                  <div className="rounded-xl border border-border-default bg-surface-primary p-4 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
@@ -127,14 +126,15 @@ export default function ClientBookingsPage() {
 
             {displayed.length < total && (
               <div className="flex justify-center mt-4">
-                <button
-                  type="button"
-                  className="min-h-[44px] rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
+                <Button
+                  variant="secondary"
+                  size="md"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={loadingMore}
+                  isLoading={loadingMore}
                 >
-                  {loadingMore ? 'Loading…' : 'Load more'}
-                </button>
+                  Load more
+                </Button>
               </div>
             )}
           </>

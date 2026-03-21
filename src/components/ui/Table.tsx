@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { Inbox } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { Card } from './Card';
 import { colPriorityMd, colPriorityLg } from './data-table-shell';
@@ -86,16 +85,8 @@ export function Table<T extends Record<string, any>>({
               onClick={() => onRowClick?.(row, index)}
               className={cn(
                 'p-4 transition-all duration-normal',
-                onRowClick ? 'cursor-pointer' : 'cursor-default'
+                onRowClick ? 'cursor-pointer hover:bg-surface-secondary' : 'cursor-default'
               )}
-              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
-                if (onRowClick) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                }
-              }}
-              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-                e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
-              }}
             >
               <div className="flex flex-col gap-3">
                 {sortedColumns.map((column) => {
@@ -220,14 +211,6 @@ export function Table<T extends Record<string, any>>({
                     'border-b border-border-muted transition-colors duration-normal',
                     onRowClick ? 'cursor-pointer hover:bg-surface-secondary' : 'cursor-default'
                   )}
-                  onMouseEnter={(e) => {
-                    if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
                 >
                   {columns.map((column) => (
                     <td

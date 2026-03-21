@@ -7,7 +7,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { PageHeader, Card, Button, Input, Badge, Skeleton } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
@@ -40,25 +40,25 @@ export default function SetupPage() {
 
   if (authLoading) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Setup" />
         <div className="p-4">
           <Skeleton height={400} />
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   if (!isOwner) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Setup" />
         <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
@@ -121,7 +121,7 @@ export default function SetupPage() {
   };
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Messaging Setup"
         description="Configure your Twilio connection and verify system readiness"
@@ -322,6 +322,6 @@ export default function SetupPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

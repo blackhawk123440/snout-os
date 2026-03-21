@@ -12,7 +12,6 @@ import {
   SitterPageHeader,
   SitterSkeletonList,
   SitterEmptyState,
-  FeatureStatusPill,
 } from '@/components/sitter';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';

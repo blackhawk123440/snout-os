@@ -10,7 +10,7 @@ import {
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
-import { EmptyState, PageSkeleton } from '@/components/ui';
+import { Button, EmptyState, PageSkeleton } from '@/components/ui';
 import { toastSuccess } from '@/lib/toast';
 import { useClientBilling, useClientPaymentMethods, useRemovePaymentMethod } from '@/lib/api/client-hooks';
 import { toastError } from '@/lib/toast';
@@ -61,7 +61,7 @@ export default function ClientBillingPage() {
         ) : data ? (
           <div className="space-y-8 pb-8">
             {/* Balance Hero */}
-            <div className="rounded-2xl border border-border-default bg-white p-6 text-center shadow-[var(--shadow-card)]">
+            <div className="rounded-2xl border border-border-default bg-surface-primary p-6 text-center shadow-[var(--shadow-card)]">
               <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary mb-1">Outstanding balance</p>
               <p className="text-3xl font-bold text-text-primary font-heading tabular-nums">${outstandingTotal.toFixed(2)}</p>
               <p className="text-sm text-text-secondary mt-1">
@@ -73,14 +73,14 @@ export default function ClientBillingPage() {
                     href={firstPaymentLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c2410c] px-6 text-sm font-semibold text-white hover:bg-[#9a3412] active:scale-[0.98] transition-all"
+                    className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 text-sm font-semibold text-white hover:brightness-90 active:scale-[0.98] transition-all"
                   >
                     Pay {unpaidInvoices.length === 1 ? `$${unpaidInvoices[0].totalPrice.toFixed(2)}` : 'now'}
                   </a>
                 ) : (
-                  <button className="mt-4 rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] active:scale-[0.98] transition-all">
+                  <Button variant="primary" size="md" className="mt-4">
                     Pay now
-                  </button>
+                  </Button>
                 )
               )}
             </div>
@@ -91,7 +91,7 @@ export default function ClientBillingPage() {
                 <h2 className="mb-3 text-sm font-semibold text-text-primary">Unpaid</h2>
                 <div className="space-y-3">
                   {unpaidInvoices.map((inv) => (
-                    <div key={inv.id} className="rounded-xl border border-border-default bg-white p-4 flex items-center justify-between">
+                    <div key={inv.id} className="rounded-xl border border-border-default bg-surface-primary p-4 flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-text-primary">
                           {inv.service} — {formatDate(inv.startAt)}
@@ -112,7 +112,7 @@ export default function ClientBillingPage() {
                             href={inv.paymentLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="shrink-0 min-h-[44px] inline-flex items-center justify-center rounded-xl bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] transition-all"
+                            className="shrink-0 min-h-[44px] inline-flex items-center justify-center rounded-xl bg-accent-primary px-4 text-sm font-semibold text-white hover:brightness-90 transition-all"
                           >
                             Pay
                           </a>
@@ -130,7 +130,7 @@ export default function ClientBillingPage() {
                 <h2 className="mb-3 text-sm font-semibold text-text-primary">Paid</h2>
                 <div className="space-y-3">
                   {data.paidCompletions.slice(0, 10).map((p) => (
-                    <div key={`${p.invoiceReference}-${p.paidAt}`} className="rounded-xl border border-border-default bg-white p-4 flex items-center justify-between">
+                    <div key={`${p.invoiceReference}-${p.paidAt}`} className="rounded-xl border border-border-default bg-surface-primary p-4 flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-text-primary">
                           {p.bookingService || 'Payment'} {p.bookingStartAt ? `— ${formatDate(p.bookingStartAt)}` : ''}
@@ -163,7 +163,7 @@ export default function ClientBillingPage() {
 
             {/* Loyalty */}
             {data.loyalty && (
-              <div className="rounded-xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
                 {(() => {
                   const tier = (data.loyalty.tier || 'bronze').toLowerCase();
                   const points = data.loyalty.points ?? 0;
@@ -194,7 +194,7 @@ export default function ClientBillingPage() {
                       <p className="text-sm text-text-secondary">{progressLabel}</p>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
                         <div
-                          className="h-full rounded-full bg-[#c2410c] transition-[width]"
+                          className="h-full rounded-full bg-accent-primary transition-[width]"
                           style={{ width: `${Math.min(100, progressPct * 100)}%` }}
                         />
                       </div>
@@ -212,17 +212,14 @@ export default function ClientBillingPage() {
 
             {/* Empty state */}
             {unpaidInvoices.length === 0 && (!data.paidCompletions || data.paidCompletions.length === 0) && data.payments.length === 0 && (
-              <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+              <div className="rounded-2xl border border-border-default bg-surface-primary p-12 text-center">
                 <h2 className="text-lg font-semibold text-text-primary mb-2">No invoices</h2>
                 <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
                   Invoices appear here after completed visits.
                 </p>
-                <button
-                  onClick={() => router.push('/client/bookings')}
-                  className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all"
-                >
+                <Button variant="primary" size="md" onClick={() => router.push('/client/bookings')}>
                   View bookings
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -289,7 +286,7 @@ function BundlesSection() {
       {bundles.length > 0 && (
         <div className="space-y-3 mb-3">
           {bundles.map((b) => (
-            <div key={b.id} className="rounded-xl border border-border-default bg-white p-4">
+            <div key={b.id} className="rounded-xl border border-border-default bg-surface-primary p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-text-primary">{b.name}</p>
@@ -301,18 +298,19 @@ function BundlesSection() {
                   <span className="text-lg font-bold tabular-nums text-text-primary font-heading">
                     ${(b.priceInCents / 100).toFixed(2)}
                   </span>
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
+                    size="md"
                     onClick={() => {
                       if (confirm(`Buy "${b.name}" for $${(b.priceInCents / 100).toFixed(2)}?`)) {
                         purchaseMutation.mutate(b.id);
                       }
                     }}
                     disabled={buyingId === b.id}
-                    className="min-h-[44px] rounded-xl bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] transition disabled:opacity-50"
+                    isLoading={buyingId === b.id}
                   >
-                    {buyingId === b.id ? 'Buying…' : 'Buy'}
-                  </button>
+                    Buy
+                  </Button>
                 </div>
               </div>
             </div>
@@ -326,7 +324,7 @@ function BundlesSection() {
           {purchases.map((p) => {
             const bundle = bundles.find(b => b.id === p.bundleId);
             return (
-              <div key={p.id} className="rounded-xl border border-border-default bg-white p-4">
+              <div key={p.id} className="rounded-xl border border-border-default bg-surface-primary p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-text-primary">
@@ -367,7 +365,7 @@ function SavedPaymentMethods() {
   };
 
   return (
-    <div className="rounded-xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)]">
+    <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-semibold text-text-primary">Payment Methods</p>
       </div>

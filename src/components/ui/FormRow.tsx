@@ -1,11 +1,10 @@
 /**
  * FormRow Component
- * 
+ *
  * Form field wrapper with consistent spacing.
  */
 
 import React from 'react';
-import { tokens } from '@/lib/design-tokens';
 
 export interface FormRowProps {
   label?: string;
@@ -23,29 +22,12 @@ export const FormRow: React.FC<FormRowProps> = ({
   children,
 }) => {
   return (
-    <div
-      style={{
-        marginBottom: tokens.spacing[6],
-      }}
-    >
+    <div className="mb-6">
       {label && (
-        <label
-          style={{
-            display: 'block',
-            marginBottom: tokens.spacing[2],
-            fontSize: tokens.typography.fontSize.sm[0],
-            fontWeight: tokens.typography.fontWeight.medium,
-            color: tokens.colors.text.primary,
-          }}
-        >
+        <label className="block mb-2 text-sm font-medium text-text-primary">
           {label}
           {required && (
-            <span
-              style={{
-                color: tokens.colors.error.DEFAULT,
-                marginLeft: tokens.spacing[1],
-              }}
-            >
+            <span className="text-error ml-1">
               *
             </span>
           )}
@@ -55,27 +37,16 @@ export const FormRow: React.FC<FormRowProps> = ({
       {error && (
         <div
           role="alert"
-          style={{
-            marginTop: tokens.spacing[1],
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.error.DEFAULT,
-          }}
+          className="mt-1 text-sm text-error"
         >
           {error}
         </div>
       )}
       {!error && helperText && (
-        <div
-          style={{
-            marginTop: tokens.spacing[1],
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-          }}
-        >
+        <div className="mt-1 text-sm text-text-secondary">
           {helperText}
         </div>
       )}
     </div>
   );
 };
-

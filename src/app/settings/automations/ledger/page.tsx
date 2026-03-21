@@ -22,7 +22,7 @@ import {
   FormRow,
   MobileFilterBar,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -125,7 +125,7 @@ export default function AutomationLedgerPage() {
   ];
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Automation Run Ledger"
         description="View automation execution history and failures"
@@ -315,6 +315,6 @@ export default function AutomationLedgerPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

@@ -21,9 +21,14 @@ import {
 } from '@/lib/offer-reassignment';
 
 export async function POST(request: NextRequest) {
-  // Optional: Require admin auth or API key for cron jobs
-  // For now, allow unauthenticated (should be protected by API key in production)
-  
+  // Require INTERNAL_API_KEY for cron/server-to-server calls
+  const authHeader = request.headers.get('authorization');
+  const expectedKey = process.env.INTERNAL_API_KEY;
+
+  if (!expectedKey || !authHeader || authHeader !== `Bearer ${expectedKey}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const correlationId = resolveCorrelationId(request);
     const now = new Date();

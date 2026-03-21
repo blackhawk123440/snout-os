@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import React from 'react';
 import { MoreVertical, Eye, ArrowLeftRight, UserPlus, Undo2, Ban, CheckCircle2, Trash2, UserX } from 'lucide-react';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip, Drawer, DropdownMenu, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, IconButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth-client';
 import {
@@ -166,25 +166,25 @@ export default function NumbersPage() {
 
   if (authLoading) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Numbers" />
         <div className="p-4">
           <Skeleton height={400} />
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   if (!isOwner) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <PageHeader title="Numbers" />
         <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
         </div>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
@@ -460,7 +460,7 @@ export default function NumbersPage() {
     : [];
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
         title="Number Inventory"
         description="Manage your messaging phone numbers"
@@ -944,6 +944,6 @@ export default function NumbersPage() {
         {/* Keep existing modals - Buy, Import, Quarantine, Release, Assign, Release to Pool */}
         {/* ... (existing modal code remains the same) ... */}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

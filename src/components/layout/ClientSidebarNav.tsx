@@ -88,7 +88,7 @@ export function ClientSidebarNav() {
                     className={cn(
                       'flex h-11 min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
                       active
-                        ? 'bg-orange-50 text-[#c2410c] font-semibold'
+                        ? 'bg-accent-secondary text-accent-primary font-semibold'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-secondary'
                     )}
                   >

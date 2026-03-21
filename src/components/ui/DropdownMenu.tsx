@@ -26,7 +26,6 @@
 
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { tokens } from '@/lib/design-tokens';
 import { Tooltip } from './Tooltip';
 import { cn } from './utils';
 
@@ -188,16 +187,11 @@ export function DropdownMenu({
           role="menu"
           style={{
             position: 'fixed',
-            zIndex: tokens.z.dropdown,
-            backgroundColor: tokens.colors.surface.overlay,
-            border: `1px solid ${tokens.colors.border.default}`,
-            borderRadius: tokens.radius.md,
-            boxShadow: tokens.shadow.lg,
+            zIndex: 1000,
             minWidth: '200px',
             maxWidth: '320px',
-            padding: tokens.spacing[1],
-            marginTop: tokens.spacing[1],
           }}
+          className="bg-surface-overlay border border-border-default rounded-xl shadow-lg p-1 mt-1"
         >
           {children}
         </div>,
@@ -211,16 +205,7 @@ export function DropdownMenuGroup({ label, children }: DropdownMenuGroupProps) {
   return (
     <div>
       {label && (
-        <div
-          style={{
-            padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-            fontSize: tokens.typography.fontSize.xs[0],
-            fontWeight: tokens.typography.fontWeight.semibold,
-            color: tokens.colors.text.secondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
+        <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase tracking-wide">
           {label}
         </div>
       )}
@@ -241,37 +226,19 @@ export function DropdownMenuItem({
     <div
       role="menuitem"
       onClick={disabled ? undefined : onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: tokens.spacing[2],
-        padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-        fontSize: tokens.typography.fontSize.sm[0],
-        color: disabled
-          ? tokens.colors.text.disabled
-          : variant === 'danger'
-          ? tokens.colors.error.DEFAULT
-          : tokens.colors.text.primary,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        borderRadius: tokens.radius.sm,
-        transition: `background-color ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
-      }}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 text-sm rounded-lg',
+        'transition-colors duration-150 ease-in-out',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-accent-secondary',
+        !disabled && variant === 'danger' ? 'text-error' : disabled ? 'text-text-disabled' : 'text-text-primary'
+      )}
     >
       {icon && (
-        <span style={{ width: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="w-4 flex items-center justify-center">
           {icon}
         </span>
       )}
-      <span style={{ flex: 1 }}>{children}</span>
+      <span className="flex-1">{children}</span>
     </div>
   );
 
@@ -289,12 +256,7 @@ export function DropdownMenuItem({
 export function DropdownMenuSeparator({ className }: DropdownMenuSeparatorProps) {
   return (
     <div
-      className={cn('dropdown-menu-separator', className)}
-      style={{
-        height: '1px',
-        backgroundColor: tokens.colors.border.default,
-        margin: `${tokens.spacing[2]} 0`,
-      }}
+      className={cn('h-px bg-border-default my-2', className)}
     />
   );
 }

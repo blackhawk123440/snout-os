@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
-import { PageSkeleton } from '@/components/ui';
+import { Button, PageSkeleton } from '@/components/ui';
 import { useClientReports } from '@/lib/api/client-hooks';
 
 function parseFirstPhoto(raw: string | null): string | null {
@@ -41,17 +41,14 @@ export default function ClientReportsPage() {
         ) : error ? (
           <AppErrorState title="Couldn't load reports" subtitle={error.message || 'Unable to load reports'} onRetry={() => void refetch()} />
         ) : reports.length === 0 ? (
-          <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+          <div className="rounded-2xl border border-border-default bg-surface-primary p-12 text-center">
             <h2 className="text-lg font-semibold text-text-primary mb-2">No reports yet</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
               Reports appear here after each visit.
             </p>
-            <button
-              onClick={() => router.push('/client/bookings')}
-              className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all"
-            >
+            <Button variant="primary" size="md" onClick={() => router.push('/client/bookings')}>
               View bookings
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -60,7 +57,7 @@ export default function ClientReportsPage() {
               const preview = report.personalNote?.slice(0, 120) || report.content?.slice(0, 120) || '';
               return (
                 <Link key={report.id} href={`/client/reports/${report.id}`}>
-                  <div className="rounded-xl border border-border-default bg-white overflow-hidden hover:shadow-[var(--shadow-md)] transition-all duration-200 cursor-pointer">
+                  <div className="rounded-xl border border-border-default bg-surface-primary overflow-hidden hover:shadow-[var(--shadow-md)] transition-all duration-200 cursor-pointer">
                     {photo && (
                       <img src={photo} alt="Visit photo" className="w-full h-40 object-cover" />
                     )}

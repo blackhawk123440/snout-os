@@ -1,10 +1,10 @@
 /**
  * FrostedCard Component
  * UI Constitution V1 - Surface Component
- * 
+ *
  * Frosted glass effect card with token blur, border, shadow, radius.
  * Interactive and non-interactive variants with hover and focus states.
- * 
+ *
  * @example
  * ```tsx
  * <FrostedCard
@@ -20,7 +20,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { tokens } from '@/lib/design-tokens';
 import { cn } from './utils';
 
 export interface FrostedCardProps {
@@ -45,7 +44,18 @@ export function FrostedCard({
   return (
     <div
       data-testid={testId || 'frosted-card'}
-      className={cn('frosted-card', className)}
+      className={cn(
+        'flex flex-col gap-4 relative overflow-hidden',
+        'border border-border-default rounded-xl shadow-md p-5',
+        'transition-all duration-150 ease-in-out',
+        interactive ? 'cursor-pointer hover:shadow-md hover:-translate-y-px' : 'cursor-default',
+        className
+      )}
+      style={{
+        backgroundColor: 'var(--color-surface-frosted-mid)',
+        backdropFilter: 'blur(var(--blur-md)) saturate(120%)',
+        WebkitBackdropFilter: 'blur(var(--blur-md)) saturate(120%)',
+      }}
       onClick={interactive ? onClick : undefined}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -55,86 +65,21 @@ export function FrostedCard({
           onClick?.();
         }
       }}
-      style={{
-        backgroundColor: tokens.colors.surface.frosted.mid, // Phase B2: High opacity white
-        backdropFilter: `blur(${tokens.blur.md}) saturate(120%)`, // Phase B2: Subtle saturation
-        WebkitBackdropFilter: `blur(${tokens.blur.md}) saturate(120%)`,
-        border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.radius.md, // Phase B2: Tighter radius
-        boxShadow: tokens.shadow.md, // Phase B2: Moderate shadow for cards
-        padding: tokens.spacing[5], // Phase B2: Slightly tighter padding
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacing[4],
-        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Faster, smoother
-        cursor: interactive ? 'pointer' : 'default',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-      onMouseEnter={(e) => {
-        if (interactive) {
-          e.currentTarget.style.boxShadow = tokens.shadow.md;
-          e.currentTarget.style.transform = 'translateY(-1px)'; // Phase 8: Subtle lift
-          e.currentTarget.style.transition = `all ${tokens.motion.duration.instant} ${tokens.motion.easing.standard}`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (interactive) {
-          e.currentTarget.style.boxShadow = tokens.shadow.sm;
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.transition = `all ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`;
-        }
-      }}
-      onFocus={(e) => {
-        if (interactive) {
-          e.currentTarget.style.outline = `2px solid ${tokens.colors.border.focus}`;
-          e.currentTarget.style.outlineOffset = '2px';
-          e.currentTarget.style.boxShadow = tokens.shadow.md;
-        }
-      }}
-      onBlur={(e) => {
-        if (interactive) {
-          e.currentTarget.style.outline = 'none';
-          e.currentTarget.style.boxShadow = tokens.shadow.sm;
-        }
-      }}
     >
       {header && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: tokens.spacing[4],
-          }}
-        >
+        <div className="flex items-start justify-between gap-4">
           {header}
         </div>
       )}
-      
+
       {children && (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <div className="flex-1 flex flex-col">
           {children}
         </div>
       )}
-      
+
       {footer && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: tokens.spacing[2],
-            paddingTop: tokens.spacing[4],
-            borderTop: `1px solid ${tokens.colors.border.muted}`,
-          }}
-        >
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-border-muted">
           {footer}
         </div>
       )}

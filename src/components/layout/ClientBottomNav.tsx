@@ -30,7 +30,7 @@ export function ClientBottomNav() {
               'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg mx-0.5 my-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
               'min-h-[44px] touch-manipulation',
               active
-                ? 'bg-[#c2410c]/10 text-[#c2410c]'
+                ? 'bg-accent-secondary text-accent-primary'
                 : 'text-text-tertiary hover:text-text-secondary'
             )}
           >
