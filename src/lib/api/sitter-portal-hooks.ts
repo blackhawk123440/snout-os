@@ -104,6 +104,13 @@ export function useSitterPetDetail(id: string | null) {
   });
 }
 
+export function useSitterReports() {
+  return useQuery({
+    queryKey: ['sitter', 'reports'],
+    queryFn: () => sitterFetch<{ reports: any[] }>('/api/sitter/reports'),
+  });
+}
+
 export function useSitterReportDetail(id: string | null) {
   return useQuery({
     queryKey: ['sitter', 'reports', id],

@@ -12,13 +12,13 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
-import { SITTER_TABS } from '@/lib/sitter-nav';
+import { SITTER_TABS, SITTER_BOTTOM_TABS } from '@/lib/sitter-nav';
 import { SitterOfflineBanner } from '@/components/sitter/SitterOfflineBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSitterMe, useSitterBadges } from '@/lib/api/sitter-portal-hooks';
 import { Icon } from '@/components/ui/Icon';
 
-const NAV_ITEMS = SITTER_TABS;
+const NAV_ITEMS = SITTER_BOTTOM_TABS;
 
 export interface SitterAppShellProps {
   children: React.ReactNode;
@@ -160,8 +160,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           const showDot =
-            (item.id === 'messages' && hasUnreadMessages) ||
-            (item.id === 'reports' && hasReportTodo);
+            (item.id === 'messages' && hasUnreadMessages);
           return (
             <Link
               key={item.href}

@@ -10,6 +10,13 @@ import {
   type SignupInput,
 } from '@/lib/signup-bootstrap';
 import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const SIGNUP_RATE_LIMIT = {
+  keyPrefix: 'signup',
+  limit: 5,
+  windowSec: 300, // 5 attempts per 5 minutes per IP
+};
 
 const SignupBodySchema = z.object({
   email: z.string().email(),
@@ -19,6 +26,16 @@ const SignupBodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent signup spam
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = await checkRateLimit(ip, SIGNUP_RATE_LIMIT);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Too many signup attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 300) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

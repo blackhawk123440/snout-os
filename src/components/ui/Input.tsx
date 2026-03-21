@@ -74,8 +74,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               !error && 'focus:outline-none focus:border-border-focus focus:ring-[3px] focus:ring-accent-secondary',
               props.disabled && 'bg-surface-tertiary text-text-disabled cursor-not-allowed',
               sizeClasses[size],
-              leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
+              !!leftIcon && 'pl-10',
+              !!rightIcon && 'pr-10',
             )}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={

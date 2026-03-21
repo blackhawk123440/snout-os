@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CLIENT_TABS } from '@/lib/client-nav';
+import { CLIENT_BOTTOM_TABS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
 import { Icon } from '@/components/ui/Icon';
 
@@ -20,7 +20,7 @@ export function ClientBottomNav() {
       style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
       aria-label="Primary navigation"
     >
-      {CLIENT_TABS.map((item) => {
+      {CLIENT_BOTTOM_TABS.map((item) => {
         const active = isActive(item.href);
         return (
           <Link

@@ -8,6 +8,7 @@
 export type FeatureStatus = 'live' | 'coming_soon' | 'beta';
 
 export const SITTER_TABS = [
+  { id: 'dashboard', label: 'Dashboard', href: '/sitter/dashboard', icon: 'fas fa-th-large' },
   { id: 'today', label: 'Today', href: '/sitter/today', icon: 'fas fa-calendar-day' },
   { id: 'bookings', label: 'Bookings', href: '/sitter/bookings', icon: 'fas fa-clipboard-list' },
   { id: 'messages', label: 'Messages', href: '/sitter/inbox', icon: 'fas fa-inbox' },
@@ -16,7 +17,17 @@ export const SITTER_TABS = [
   { id: 'profile', label: 'Profile', href: '/sitter/profile', icon: 'fas fa-user' },
 ] as const;
 
+/** Mobile bottom nav — limited to 5 core items for touch ergonomics. */
+export const SITTER_BOTTOM_TABS = [
+  SITTER_TABS[1], // Today
+  SITTER_TABS[2], // Bookings
+  SITTER_TABS[3], // Messages
+  SITTER_TABS[5], // Earnings
+  SITTER_TABS[6], // Profile
+] as const;
+
 export const SITTER_PROFILE_LINKS = [
+  { href: '/sitter/dashboard', label: 'Dashboard', icon: 'fas fa-th-large' },
   { href: '/sitter/jobs', label: 'Jobs', icon: 'fas fa-briefcase' },
   { href: '/sitter/availability', label: 'Availability', icon: 'fas fa-calendar-check' },
   { href: '/sitter/pets', label: 'Pets', icon: 'fas fa-paw' },
@@ -27,6 +38,7 @@ export const SITTER_PROFILE_LINKS = [
 
 /** Feature status per module. Keys match route/feature identifiers. */
 export const FEATURE_STATUS: Record<string, FeatureStatus> = {
+  dashboard: 'live',
   today: 'live',
   calendar: 'live',
   inbox: 'live',

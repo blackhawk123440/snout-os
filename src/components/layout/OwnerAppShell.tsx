@@ -65,6 +65,7 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
     title: 'Workforce',
     items: [
       { label: 'Growth / Tiers', href: '/growth', icon: 'fas fa-arrow-trend-up' },
+      { label: 'Rankings', href: '/sitters/rankings', icon: 'fas fa-ranking-star' },
       { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
     ],
   },
@@ -72,6 +73,7 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
     title: 'Business',
     items: [
       { label: 'Reports', href: '/reports', icon: 'fas fa-chart-pie' },
+      { label: 'Analytics', href: '/analytics', icon: 'fas fa-chart-bar' },
       { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
       { label: 'Bundles', href: '/bundles', icon: 'fas fa-box-open' },
       { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
@@ -82,6 +84,7 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
       { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
+      { label: 'Templates', href: '/templates', icon: 'fas fa-file-lines' },
       { label: 'Review Automation', href: '/review-settings', icon: 'fas fa-star' },
       { label: 'Weekly Digest', href: '/digest-settings', icon: 'fas fa-envelope-open-text' },
     ],
@@ -103,6 +106,7 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
           { label: 'Payout Operations', href: '/ops/payouts', icon: 'fas fa-sack-dollar' },
           { label: 'Reconciliation', href: '/ops/finance/reconciliation', icon: 'fas fa-scale-balanced' },
           { label: 'AI Ops', href: '/ops/ai', icon: 'fas fa-robot' },
+          { label: 'Exceptions', href: '/exceptions', icon: 'fas fa-flag' },
         ],
       },
     ],

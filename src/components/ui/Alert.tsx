@@ -5,9 +5,10 @@ export interface AlertProps {
   variant?: 'error' | 'success' | 'warning' | 'info';
   children: React.ReactNode;
   style?: React.CSSProperties;
+  className?: string;
 }
 
-export function Alert({ variant = 'info', children, style }: AlertProps) {
+export function Alert({ variant = 'info', children, style, className }: AlertProps) {
   const variantStyles = {
     error: {
       backgroundColor: '#FEE2E2',
@@ -35,6 +36,7 @@ export function Alert({ variant = 'info', children, style }: AlertProps) {
 
   return (
     <div
+      className={className}
       style={{
         padding: tokens.spacing[3],
         borderRadius: tokens.borderRadius.md,
