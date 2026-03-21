@@ -246,15 +246,15 @@ function QuickInsightsStrip({
 }) {
   return (
     <div className="mb-4 grid grid-cols-3 gap-3">
-      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+      <div className="rounded-xl bg-accent-tertiary px-4 py-3">
         <div className="flex items-center gap-1.5 mb-1">
           <CalendarCheck className="w-3.5 h-3.5 text-text-disabled" />
-          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Remaining</span>
+          <span className="text-[11px] font-semibold text-accent-primary tracking-wider uppercase">Remaining</span>
         </div>
         <span className="font-heading text-xl font-bold text-text-primary tabular-nums">{visitsRemaining}</span>
         <span className="text-xs text-text-tertiary ml-1">of {totalVisits}</span>
       </div>
-      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+      <div className="rounded-xl bg-surface-secondary px-4 py-3">
         <div className="flex items-center gap-1.5 mb-1">
           <TrendingUp className="w-3.5 h-3.5 text-text-disabled" />
           <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Completed</span>
@@ -262,7 +262,7 @@ function QuickInsightsStrip({
         <span className="font-heading text-xl font-bold text-text-primary tabular-nums">{completedCount}</span>
         <span className="text-xs text-text-tertiary ml-1">visits</span>
       </div>
-      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+      <div className="rounded-xl bg-surface-secondary px-4 py-3">
         <div className="flex items-center gap-1.5 mb-1">
           <Clock className="w-3.5 h-3.5 text-text-disabled" />
           <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Progress</span>
@@ -749,27 +749,25 @@ export default function SitterTodayPage() {
             onRetry={() => void loadBookings()}
           />
         ) : bookings.length === 0 ? (
-          <SitterCard>
-            <SitterCardBody>
-              <p className="text-base font-semibold text-text-primary">No visits today</p>
-              <p className="mt-1 text-sm text-text-tertiary">You are all set for today.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/calendar')}>
-                  Open calendar
-                </Button>
-                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/bookings')}>
-                  View upcoming bookings
-                </Button>
-                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/availability')}>
-                  Update availability
-                </Button>
-              </div>
-            </SitterCardBody>
-          </SitterCard>
+          <div className="rounded-2xl bg-accent-tertiary p-8 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-5">
+              <CalendarCheck className="h-7 w-7 text-text-inverse" />
+            </div>
+            <p className="text-xl font-bold text-text-primary">You're all set</p>
+            <p className="mt-2 text-sm text-text-secondary max-w-[300px] mx-auto leading-relaxed">No visits scheduled for today. Check your calendar for upcoming assignments or update your availability.</p>
+            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+              <Button variant="primary" size="md" onClick={() => router.push('/sitter/calendar')}>
+                View calendar
+              </Button>
+              <Button variant="secondary" size="md" onClick={() => router.push('/sitter/availability')}>
+                Update availability
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading text-lg font-semibold text-text-primary tracking-tight">Today command center</h2>
+              <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Today's visits</h2>
               <button
                 type="button"
                 onClick={toggleShowCancelled}

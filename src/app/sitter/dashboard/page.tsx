@@ -3,16 +3,14 @@
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Calendar, PhoneOff, GraduationCap, FileText, BarChart3, CalendarCheck } from 'lucide-react';
+import { ChevronRight, Calendar, FileText, BarChart3, CalendarCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-client';
 import { useSitterDashboard } from '@/lib/api/sitter-dashboard-hooks';
 import { statusDotClass, statusLabel } from '@/lib/status-colors';
 import { Button } from '@/components/ui';
 import {
   SitterCard,
-  SitterCardHeader,
   SitterCardBody,
-  SitterCardActions,
   SitterPageHeader,
 } from '@/components/sitter';
 
@@ -88,204 +86,203 @@ function SitterDashboardContent() {
       />
 
       <div className="space-y-4">
-        {/* Quick Stats */}
-        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
-          <StatCard label="Today's visits" value={`${completedCount}/${totalToday}`} sub={inProgressCount > 0 ? `${inProgressCount} in progress` : undefined} />
-          <StatCard label="Pending" value={String(pendingRequests.length)} alert={pendingRequests.length > 0} />
-          <StatCard label="Earnings" value={`$${Math.round(totalEarnings)}`} />
-          <StatCard label="Rating" value={dash.performance?.clientRating ? `${dash.performance.clientRating.toFixed(1)} \u2605` : 'N/A'} />
+        {/* KPIs */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl bg-accent-tertiary p-4 sm:col-span-1">
+            <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Visits</p>
+            <p className="mt-2 text-3xl font-bold text-accent-primary tabular-nums">{completedCount}<span className="text-base font-medium text-accent-primary/60">/{totalToday}</span></p>
+            {inProgressCount > 0 && <p className="mt-1 text-xs font-medium text-accent-primary">{inProgressCount} in progress</p>}
+          </div>
+          <div className={`rounded-2xl p-4 ${pendingRequests.length > 0 ? 'bg-status-warning-bg' : 'bg-surface-secondary'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-wider ${pendingRequests.length > 0 ? 'text-status-warning-text' : 'text-text-tertiary'}`}>Pending</p>
+            <p className={`mt-2 text-3xl font-bold tabular-nums ${pendingRequests.length > 0 ? 'text-status-warning-text' : 'text-text-primary'}`}>{pendingRequests.length}</p>
+          </div>
+          <div className="rounded-2xl bg-surface-secondary p-4">
+            <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Earned</p>
+            <p className="mt-2 text-3xl font-bold text-text-primary tabular-nums">${Math.round(totalEarnings)}</p>
+          </div>
+          <div className="rounded-2xl bg-surface-secondary p-4">
+            <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Rating</p>
+            <p className="mt-2 text-3xl font-bold text-text-primary tabular-nums">{dash.performance?.clientRating ? dash.performance.clientRating.toFixed(1) : '—'}</p>
+            {dash.performance?.clientRating && <p className="mt-1 text-xs text-text-tertiary">out of 5.0</p>}
+          </div>
         </div>
 
-        {/* Next Visit Hero */}
         {nextVisit ? (
-          <SitterCard className="border-2 border-status-info-border bg-status-info-bg">
-            <SitterCardBody>
-              <p className="text-xs font-medium uppercase tracking-wide text-status-info-text">Next up</p>
-              {minutesUntilNext != null && (
-                <p className="mt-1 text-sm font-semibold text-status-info-text">
-                  {minutesUntilNext < 60 ? `Starts in ${minutesUntilNext} min` : `Starts in ${Math.floor(minutesUntilNext / 60)}h ${minutesUntilNext % 60}m`}
-                </p>
-              )}
-              <div className="mt-2">
-                <p className="text-lg font-semibold text-text-primary">
-                  {formatTime(nextVisit.startAt)} \u2014 {nextVisit.service}
-                </p>
-                <p className="text-sm text-text-secondary">
-                  {nextVisit.client ? `${nextVisit.client.firstName} ${nextVisit.client.lastName}` : `${nextVisit.firstName} ${nextVisit.lastName}`}
+          <div className="rounded-2xl bg-accent-tertiary p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Next up</p>
+                {minutesUntilNext != null && (
+                  <p className="mt-1 text-sm font-bold text-accent-primary">
+                    {minutesUntilNext < 60 ? `Starts in ${minutesUntilNext} min` : `Starts in ${Math.floor(minutesUntilNext / 60)}h ${minutesUntilNext % 60}m`}
+                  </p>
+                )}
+                <p className="mt-3 text-lg font-bold text-text-primary">{nextVisit.service}</p>
+                <p className="mt-0.5 text-sm text-text-secondary">
+                  {formatTime(nextVisit.startAt)} · {nextVisit.client ? `${nextVisit.client.firstName} ${nextVisit.client.lastName}` : `${nextVisit.firstName} ${nextVisit.lastName}`}
                 </p>
                 {nextVisit.pets?.length > 0 && (
-                  <p className="text-sm text-text-tertiary">{nextVisit.pets.map((p) => p.name || p.species).join(', ')}</p>
+                  <p className="mt-0.5 text-sm text-text-tertiary">{nextVisit.pets.map((p) => p.name || p.species).join(', ')}</p>
                 )}
-                {nextVisit.address && <p className="text-xs text-text-tertiary mt-0.5">{nextVisit.address}</p>}
+                {nextVisit.address && <p className="text-xs text-text-tertiary mt-1">{nextVisit.address}</p>}
               </div>
-            </SitterCardBody>
-            <SitterCardActions stopPropagation>
-              <Button variant="primary" size="md" className="w-full min-h-[44px]" onClick={() => router.push('/sitter/today')}>
-                Start working
-              </Button>
-            </SitterCardActions>
-          </SitterCard>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent-primary text-text-inverse text-lg font-bold shadow-sm">
+                {nextVisit.service?.[0] || 'V'}
+              </div>
+            </div>
+            <Button variant="primary" size="md" className="w-full min-h-[44px] mt-4" onClick={() => router.push('/sitter/today')}>
+              Start working
+            </Button>
+          </div>
         ) : totalToday === 0 ? (
-          <SitterCard className="border border-border-default">
-            <SitterCardBody>
-              <div className="text-center py-4">
-                <p className="text-base font-semibold text-text-primary">No visits today</p>
-                <p className="mt-1 text-sm text-text-secondary">You're all set. Check your calendar for upcoming bookings.</p>
-                <div className="mt-4 flex justify-center gap-3">
-                  <Link href="/sitter/calendar">
-                    <Button variant="secondary" size="sm">View calendar</Button>
-                  </Link>
-                  <Link href="/sitter/availability">
-                    <Button variant="secondary" size="sm">Set availability</Button>
-                  </Link>
-                </div>
-              </div>
-            </SitterCardBody>
-          </SitterCard>
+          <div className="rounded-2xl bg-accent-tertiary p-8 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-4">
+              <Calendar className="h-7 w-7 text-text-inverse" />
+            </div>
+            <p className="text-xl font-bold text-text-primary">No visits today</p>
+            <p className="mt-2 text-sm text-text-secondary max-w-[280px] mx-auto leading-relaxed">You're all set. Check your calendar for upcoming bookings or update your availability.</p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link href="/sitter/calendar">
+                <Button variant="primary" size="md">View calendar</Button>
+              </Link>
+              <Link href="/sitter/availability">
+                <Button variant="secondary" size="md">Set availability</Button>
+              </Link>
+            </div>
+          </div>
         ) : null}
 
         {/* Action Required */}
         {(pendingRequests.length > 0 || dash.unreadMessageCount > 0 || reportsNeeded > 0) && (
-          <SitterCard>
-            <SitterCardHeader><h3 className="text-sm font-semibold text-text-primary">Action Required</h3></SitterCardHeader>
-            <SitterCardBody>
-              <div className="space-y-2">
-                {pendingRequests.length > 0 && (
-                  <Link href="/sitter/bookings" className="flex items-center justify-between min-h-[44px] rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 hover:opacity-90 transition">
-                    <span className="text-sm font-medium text-status-warning-text">{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}</span>
-                    <ChevronRight className="h-3 w-3 text-status-warning-text-secondary" />
-                  </Link>
-                )}
-                {dash.unreadMessageCount > 0 && (
-                  <Link href="/sitter/inbox" className="flex items-center justify-between min-h-[44px] rounded-lg border border-border-default px-3 py-2 hover:bg-surface-secondary transition">
-                    <span className="text-sm font-medium text-text-primary">{dash.unreadMessageCount} unread message{dash.unreadMessageCount !== 1 ? 's' : ''}</span>
-                    <ChevronRight className="h-3 w-3 text-text-tertiary" />
-                  </Link>
-                )}
-                {reportsNeeded > 0 && (
-                  <Link href="/sitter/reports/new" className="flex items-center justify-between min-h-[44px] rounded-lg border border-border-default px-3 py-2 hover:bg-surface-secondary transition">
-                    <span className="text-sm font-medium text-text-primary">{reportsNeeded} report{reportsNeeded !== 1 ? 's' : ''} due</span>
-                    <ChevronRight className="h-3 w-3 text-text-tertiary" />
-                  </Link>
-                )}
-              </div>
-            </SitterCardBody>
-          </SitterCard>
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">Action required</h3>
+            <div className="space-y-2">
+              {pendingRequests.length > 0 && (
+                <Link href="/sitter/bookings" className="flex items-center justify-between min-h-[44px] rounded-xl bg-status-warning-bg px-4 py-2.5 hover:opacity-90 transition">
+                  <span className="text-sm font-semibold text-status-warning-text">{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}</span>
+                  <ChevronRight className="h-4 w-4 text-status-warning-text" />
+                </Link>
+              )}
+              {dash.unreadMessageCount > 0 && (
+                <Link href="/sitter/inbox" className="flex items-center justify-between min-h-[44px] rounded-xl bg-surface-secondary px-4 py-2.5 hover:bg-surface-tertiary transition">
+                  <span className="text-sm font-medium text-text-primary">{dash.unreadMessageCount} unread message{dash.unreadMessageCount !== 1 ? 's' : ''}</span>
+                  <ChevronRight className="h-4 w-4 text-text-tertiary" />
+                </Link>
+              )}
+              {reportsNeeded > 0 && (
+                <Link href="/sitter/reports/new" className="flex items-center justify-between min-h-[44px] rounded-xl bg-surface-secondary px-4 py-2.5 hover:bg-surface-tertiary transition">
+                  <span className="text-sm font-medium text-text-primary">{reportsNeeded} report{reportsNeeded !== 1 ? 's' : ''} due</span>
+                  <ChevronRight className="h-4 w-4 text-text-tertiary" />
+                </Link>
+              )}
+            </div>
+          </div>
         )}
 
-        {/* Schedule Preview */}
-        <SitterCard>
-          <SitterCardHeader>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text-primary">Schedule</h3>
-              <Link href="/sitter/today" className="text-xs font-medium text-accent-primary hover:underline">Start working →</Link>
+        {/* Schedule */}
+        {allToday.length > 0 && (
+          <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Schedule</h3>
+              <Link href="/sitter/today" className="text-xs font-semibold text-accent-primary hover:underline">Start working →</Link>
             </div>
-          </SitterCardHeader>
-          <SitterCardBody>
-            {allToday.length === 0 ? (
-              <div className="py-4 text-center">
-                <p className="text-sm text-text-tertiary">No visits scheduled today.</p>
-                <Link href="/sitter/calendar" className="mt-2 inline-block text-sm font-medium text-accent-primary hover:underline">Check calendar</Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-border-muted -mx-5">
-                {allToday.slice(0, 3).map((b) => {
-                  const isCompleted = b.status === 'completed';
-                  const clientName = b.client ? `${b.client.firstName} ${b.client.lastName}` : `${b.firstName} ${b.lastName}`;
-                  return (
-                    <div
-                      key={b.id}
-                      className={`flex items-center gap-3 px-5 py-3 min-h-[44px] cursor-pointer hover:bg-surface-secondary transition ${isCompleted ? 'opacity-50' : ''}`}
-                      onClick={() => router.push(`/sitter/bookings/${b.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/sitter/bookings/${b.id}`)}
-                    >
-                      <div className="w-16 shrink-0 text-sm font-medium tabular-nums text-text-primary">{formatTime(b.startAt)}</div>
-                      <span className={`shrink-0 h-2.5 w-2.5 rounded-full ${statusDotClass(b.status)}`} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text-primary truncate">{b.service}</p>
-                        <p className="text-xs text-text-secondary truncate">{clientName}</p>
-                      </div>
-                      <span className="shrink-0 text-xs text-text-tertiary">{statusLabel(b.status)}</span>
+            <div className="divide-y divide-border-muted">
+              {allToday.slice(0, 3).map((b) => {
+                const isCompleted = b.status === 'completed';
+                const clientName = b.client ? `${b.client.firstName} ${b.client.lastName}` : `${b.firstName} ${b.lastName}`;
+                return (
+                  <div
+                    key={b.id}
+                    className={`flex items-center gap-3 px-5 py-3.5 min-h-[48px] cursor-pointer hover:bg-surface-secondary transition ${isCompleted ? 'opacity-40' : ''}`}
+                    onClick={() => router.push(`/sitter/bookings/${b.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/sitter/bookings/${b.id}`)}
+                  >
+                    <div className="w-16 shrink-0 text-sm font-semibold tabular-nums text-text-primary">{formatTime(b.startAt)}</div>
+                    <span className={`shrink-0 h-2.5 w-2.5 rounded-full ${statusDotClass(b.status)}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text-primary truncate">{b.service}</p>
+                      <p className="text-xs text-text-secondary truncate">{clientName}</p>
                     </div>
-                  );
-                })}
-                {allToday.length > 3 && (
-                  <Link href="/sitter/today" className="flex items-center justify-center px-5 py-3 min-h-[44px] text-sm font-medium text-accent-primary hover:bg-surface-secondary transition">
-                    +{allToday.length - 3} more — view full schedule
-                  </Link>
-                )}
+                    <span className="shrink-0 text-xs font-medium text-text-tertiary">{statusLabel(b.status)}</span>
+                  </div>
+                );
+              })}
+              {allToday.length > 3 && (
+                <Link href="/sitter/today" className="flex items-center justify-center px-5 py-3.5 min-h-[44px] text-sm font-semibold text-accent-primary hover:bg-surface-secondary transition">
+                  +{allToday.length - 3} more — view full schedule
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Performance */}
+        <div className="rounded-2xl bg-surface-secondary p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Performance</h3>
+            <Link href="/sitter/performance" className="text-xs font-semibold text-accent-primary hover:underline">Full metrics →</Link>
+          </div>
+          <div className="flex items-center gap-4">
+            {dash.currentTier && (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent-primary text-lg font-bold text-text-inverse shadow-sm">
+                {dash.currentTier.name.charAt(0)}
               </div>
             )}
-          </SitterCardBody>
-        </SitterCard>
-
-        {/* Performance Snapshot */}
-        <SitterCard>
-          <SitterCardHeader>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text-primary">Performance</h3>
-              <Link href="/sitter/performance" className="text-xs font-medium text-accent-primary hover:underline">Full metrics {'\u2192'}</Link>
-            </div>
-          </SitterCardHeader>
-          <SitterCardBody>
-            <div className="flex items-center gap-4">
-              {dash.currentTier && (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-tertiary text-lg font-bold text-accent-primary">
-                  {dash.currentTier.name.charAt(0)}
-                </div>
-              )}
-              <div className="grid grid-cols-3 gap-3 flex-1">
-                <div>
-                  <p className="text-xs text-text-tertiary">Accept</p>
-                  <p className="text-sm font-semibold text-text-primary">{dash.performance?.acceptanceRate != null ? `${Math.round(dash.performance.acceptanceRate)}%` : 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-tertiary">Complete</p>
-                  <p className="text-sm font-semibold text-text-primary">{dash.performance?.completionRate != null ? `${Math.round(dash.performance.completionRate)}%` : 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-tertiary">On-time</p>
-                  <p className="text-sm font-semibold text-text-primary">{dash.performance?.onTimeRate != null ? `${Math.round(dash.performance.onTimeRate)}%` : 'N/A'}</p>
-                </div>
+            <div className="grid grid-cols-3 gap-4 flex-1">
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Accept</p>
+                <p className="mt-1 text-xl font-bold text-text-primary tabular-nums">{dash.performance?.acceptanceRate != null ? `${Math.round(dash.performance.acceptanceRate)}%` : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Complete</p>
+                <p className="mt-1 text-xl font-bold text-text-primary tabular-nums">{dash.performance?.completionRate != null ? `${Math.round(dash.performance.completionRate)}%` : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">On-time</p>
+                <p className="mt-1 text-xl font-bold text-text-primary tabular-nums">{dash.performance?.onTimeRate != null ? `${Math.round(dash.performance.onTimeRate)}%` : '—'}</p>
               </div>
             </div>
-          </SitterCardBody>
-        </SitterCard>
+          </div>
+        </div>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-2">
-          <Link href="/sitter/calendar" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <Calendar className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Calendar</span>
-          </Link>
-          <Link href="/sitter/reports" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <FileText className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Reports</span>
-          </Link>
-          <Link href="/sitter/performance" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <BarChart3 className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Performance</span>
-          </Link>
-          <Link href="/sitter/availability" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <CalendarCheck className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Availability</span>
-          </Link>
+        {/* Quick Access */}
+        <div>
+          <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">Quick access</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/sitter/calendar" className="flex flex-col gap-1.5 rounded-2xl bg-surface-primary shadow-sm p-4 min-h-[88px] hover:shadow-md transition">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-secondary">
+                <Calendar className="h-4.5 w-4.5 text-accent-primary" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Calendar</span>
+              <span className="text-[11px] text-text-tertiary leading-tight">Upcoming schedule</span>
+            </Link>
+            <Link href="/sitter/reports" className="flex flex-col gap-1.5 rounded-2xl bg-surface-primary shadow-sm p-4 min-h-[88px] hover:shadow-md transition">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-secondary">
+                <FileText className="h-4.5 w-4.5 text-accent-primary" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Reports</span>
+              <span className="text-[11px] text-text-tertiary leading-tight">Visit updates</span>
+            </Link>
+            <Link href="/sitter/performance" className="flex flex-col gap-1.5 rounded-2xl bg-surface-primary shadow-sm p-4 min-h-[88px] hover:shadow-md transition">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-secondary">
+                <BarChart3 className="h-4.5 w-4.5 text-accent-primary" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Performance</span>
+              <span className="text-[11px] text-text-tertiary leading-tight">Tier and metrics</span>
+            </Link>
+            <Link href="/sitter/availability" className="flex flex-col gap-1.5 rounded-2xl bg-surface-primary shadow-sm p-4 min-h-[88px] hover:shadow-md transition">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-secondary">
+                <CalendarCheck className="h-4.5 w-4.5 text-accent-primary" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Availability</span>
+              <span className="text-[11px] text-text-tertiary leading-tight">Hours and block-offs</span>
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ─── Stat Card ─────────────────────────────────────────────────────── */
-
-function StatCard({ label, value, sub, alert }: { label: string; value: string; sub?: string; alert?: boolean }) {
-  return (
-    <div className={`shrink-0 flex-1 min-w-[110px] rounded-xl border p-3 ${alert ? 'border-status-warning-border bg-status-warning-bg' : 'border-border-default bg-surface-primary'}`}>
-      <p className={`text-xs font-medium ${alert ? 'text-status-warning-text-secondary' : 'text-text-tertiary'}`}>{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${alert ? 'text-status-warning-text' : 'text-text-primary'}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-text-tertiary">{sub}</p>}
     </div>
   );
 }

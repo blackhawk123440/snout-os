@@ -5,9 +5,6 @@ import { Button, Drawer, DataTableShell, Table } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { StatusChip } from '@/components/ui/status-chip';
 import {
-  SitterCard,
-  SitterCardHeader,
-  SitterCardBody,
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
@@ -97,90 +94,80 @@ export default function SitterEarningsPage() {
         />
       ) : data ? (
         <div className="space-y-4">
-          <SitterCard>
-            <SitterCardHeader>
-              <p className="text-sm font-medium text-text-tertiary">Total earnings</p>
-              <p className="mt-1 text-2xl font-bold text-text-primary">
-                ${data.earningsTotal.toFixed(2)}
+          <div className="rounded-2xl bg-accent-tertiary p-6">
+            <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Total earnings</p>
+            <p className="mt-3 text-4xl font-bold text-text-primary tabular-nums">
+              ${data.earningsTotal.toFixed(2)}
+            </p>
+            <div className="mt-3 flex items-center gap-3 text-sm text-text-secondary">
+              <span>{data.completedBookingsCount} visits</span>
+              <span className="text-text-disabled">·</span>
+              <span>{data.commissionPercentage}% commission</span>
+            </div>
+            {data.completedBookingsCount > 0 && (
+              <p className="mt-1 text-sm text-text-tertiary tabular-nums">
+                ${data.averagePerVisit.toFixed(2)} avg per visit
               </p>
-              <p className="mt-1 text-sm text-text-secondary">
-                {data.completedBookingsCount} completed visits · {data.commissionPercentage}% after split
-              </p>
-              {data.completedBookingsCount > 0 && (
-                <p className="mt-0.5 text-sm text-text-tertiary">
-                  ${data.averagePerVisit.toFixed(2)} average per visit
+            )}
+          </div>
+
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Next payout</p>
+            {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
+              <>
+                <p className="mt-2 text-2xl font-bold text-text-primary">
+                  {transferSummary.nextPayoutDate.toLocaleDateString([], {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </p>
-              )}
-            </SitterCardHeader>
-          </SitterCard>
+                <p className="mt-1 text-xs text-text-tertiary">Estimated</p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-text-secondary">After first completed visit</p>
+            )}
+          </div>
 
-          <SitterCard className="border-border-brand bg-surface-brand-subtle">
-            <SitterCardBody>
-              <p className="text-sm font-medium text-text-brand">Next payout</p>
-              {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
-                <>
-                  <p className="mt-1 text-2xl font-semibold text-text-brand">
-                    {transferSummary.nextPayoutDate.toLocaleDateString([], {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-text-brand">Estimated</p>
-                </>
-              ) : (
-                <p className="mt-1 text-sm text-text-brand">After first completed visit</p>
-              )}
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard>
-            <SitterCardBody>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">This month</p>
-                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
-                    ${data.earningsThisMonth.toFixed(2)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">
-                    {data.completedThisMonthCount} visits
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Last month</p>
-                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
-                    ${data.earningsLastMonth.toFixed(2)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">
-                    {data.completedLastMonthCount} visits
-                  </p>
-                </div>
+          <div className="rounded-2xl bg-surface-secondary p-5">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">This month</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
+                  ${data.earningsThisMonth.toFixed(2)}
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">{data.completedThisMonthCount} visits</p>
               </div>
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard>
-            <SitterCardBody>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Pending</p>
-                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
-                    ${(transferSummary.pendingCents / 100).toFixed(2)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">Awaiting payout</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Paid (30d)</p>
-                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
-                    ${(transferSummary.paid30dCents / 100).toFixed(2)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">Last 30 days</p>
-                </div>
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Last month</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
+                  ${data.earningsLastMonth.toFixed(2)}
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">{data.completedLastMonthCount} visits</p>
               </div>
-            </SitterCardBody>
-          </SitterCard>
+            </div>
+          </div>
 
-          <h3 className="text-base font-semibold text-text-primary">Payout transfers</h3>
+          <div className="rounded-2xl bg-surface-secondary p-5">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Pending</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
+                  ${(transferSummary.pendingCents / 100).toFixed(2)}
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">Awaiting payout</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Paid (30d)</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
+                  ${(transferSummary.paid30dCents / 100).toFixed(2)}
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">Last 30 days</p>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide mt-2">Payout transfers</h3>
           {transfersLoading ? (
             <SitterSkeletonList count={2} />
           ) : transfers.length === 0 ? (
@@ -220,7 +207,7 @@ export default function SitterEarningsPage() {
             </DataTableShell>
           )}
 
-          <h3 className="text-base font-semibold text-text-primary">Completed jobs</h3>
+          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide mt-2">Completed jobs</h3>
           {jobsLoading ? (
             <SitterSkeletonList count={2} />
           ) : completedJobs.length === 0 ? (

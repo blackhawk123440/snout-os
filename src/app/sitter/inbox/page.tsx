@@ -291,9 +291,11 @@ function SitterInboxContent() {
             title="Inbox"
             subtitle="Visit-related messages during active assignments"
           />
-          <p className="px-4 pt-3 text-xs text-text-tertiary md:px-6">{SITTER_BOUNDARY_HELPER}</p>
+          <div className="mx-4 mt-3 rounded-xl bg-accent-tertiary px-4 py-3 md:mx-6">
+            <p className="text-xs font-medium text-accent-primary leading-relaxed">{SITTER_BOUNDARY_HELPER}</p>
+          </div>
 
-          <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-border-default bg-surface-primary shadow-sm md:flex-row">
+          <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl bg-surface-primary shadow-md md:flex-row overflow-hidden">
             {/* Thread list - hidden on mobile when conversation open */}
             <div className={`flex w-full flex-col border-b border-border-default md:w-80 md:border-b-0 md:border-r ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
           <div className="border-b border-border-default p-4">
@@ -318,11 +320,12 @@ function SitterInboxContent() {
                 />
               </div>
             ) : filteredThreads.length === 0 ? (
-              <div className="p-4">
-                <SitterEmptyState
-                  title="No active assignments"
-                  subtitle="Client threads appear automatically when you're assigned to a visit."
-                />
+              <div className="flex flex-col items-center justify-center p-8 text-center min-h-[200px] bg-surface-secondary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-3">
+                  <MessageSquare className="h-5 w-5 text-text-inverse" />
+                </div>
+                <p className="text-sm font-semibold text-text-primary">No active assignments</p>
+                <p className="mt-1 text-xs text-text-tertiary max-w-[200px]">Client threads appear automatically when you're assigned to a visit.</p>
               </div>
             ) : (
               filteredThreads.map((thread) => {
@@ -545,14 +548,14 @@ function SitterInboxContent() {
               </div>
             </>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-secondary mb-4">
-                <MessageSquare className="h-6 w-6 text-text-disabled" />
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-surface-secondary">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-5">
+                <MessageSquare className="h-7 w-7 text-text-inverse" />
               </div>
-              <p className="text-sm font-medium text-text-secondary">
+              <p className="text-base font-semibold text-text-primary">
                 {isMobile ? 'Tap a thread to open' : 'Select a conversation'}
               </p>
-              <p className="mt-1 text-xs text-text-tertiary max-w-[240px]">
+              <p className="mt-2 text-sm text-text-secondary max-w-[260px] leading-relaxed">
                 Choose a client thread from the list to view and send messages during your active visit window.
               </p>
             </div>

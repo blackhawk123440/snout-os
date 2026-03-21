@@ -9,9 +9,6 @@ import { StatusChip } from '@/components/ui/status-chip';
 import { LayoutWrapper } from '@/components/layout';
 import { toastError } from '@/lib/toast';
 import {
-  SitterCard,
-  SitterCardHeader,
-  SitterCardBody,
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
@@ -142,10 +139,9 @@ export default function SitterProfilePage() {
       ) : profile ? (
         <div className="space-y-4">
           {/* ── Personal Info ────────────────────────────────────────── */}
-          <SitterCard>
-            <SitterCardBody>
+          <div className="rounded-2xl bg-accent-tertiary p-5">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-secondary text-xl font-semibold text-text-brand">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-primary to-accent-primary/80 text-2xl font-bold text-text-inverse shadow-sm">
                   {(profile.name || 'S').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -171,38 +167,34 @@ export default function SitterProfilePage() {
                   </p>
                 </div>
               </div>
-            </SitterCardBody>
-          </SitterCard>
+          </div>
 
           {/* ── Account Readiness ──────────────────────────────────── */}
-          <SitterCard>
-            <SitterCardHeader>
-              <h3 className="text-base font-semibold text-text-primary">Account readiness</h3>
-            </SitterCardHeader>
-            <SitterCardBody>
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-4">Account readiness</h3>
               <div className="grid grid-cols-2 gap-3">
-                <Link href="/sitter/availability" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                <Link href="/sitter/availability" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-secondary p-3.5 min-h-[52px] hover:bg-surface-tertiary transition">
                   <Calendar className="h-4 w-4 text-text-tertiary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-text-tertiary">Availability</p>
                     <p className="text-sm font-medium text-text-primary">{availabilityEnabled ? 'Available' : 'Off duty'}</p>
                   </div>
                 </Link>
-                <Link href="#payouts" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition" onClick={(e) => { e.preventDefault(); document.getElementById('payouts')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                <Link href="#payouts" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-secondary p-3.5 min-h-[52px] hover:bg-surface-tertiary transition" onClick={(e) => { e.preventDefault(); document.getElementById('payouts')?.scrollIntoView({ behavior: 'smooth' }); }}>
                   <Wallet className="h-4 w-4 text-text-tertiary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-text-tertiary">Payouts</p>
                     <p className="text-sm font-medium text-text-primary">{stripeStatus.connected && stripeStatus.payoutsEnabled ? 'Connected' : 'Setup needed'}</p>
                   </div>
                 </Link>
-                <Link href="/sitter/performance" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                <Link href="/sitter/performance" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-secondary p-3.5 min-h-[52px] hover:bg-surface-tertiary transition">
                   <BarChart3 className="h-4 w-4 text-text-tertiary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-text-tertiary">Performance</p>
                     <p className="text-sm font-medium text-text-primary">View metrics</p>
                   </div>
                 </Link>
-                <Link href="/sitter/training" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                <Link href="/sitter/training" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-secondary p-3.5 min-h-[52px] hover:bg-surface-tertiary transition">
                   <GraduationCap className="h-4 w-4 text-text-tertiary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-text-tertiary">Training</p>
@@ -210,15 +202,11 @@ export default function SitterProfilePage() {
                   </div>
                 </Link>
               </div>
-            </SitterCardBody>
-          </SitterCard>
+          </div>
 
           {/* ── Availability ─────────────────────────────────────────── */}
-          <SitterCard>
-            <SitterCardHeader>
-              <h3 className="text-base font-semibold text-text-primary">Availability</h3>
-            </SitterCardHeader>
-            <SitterCardBody>
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-4">Availability</h3>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-text-primary">Available for new bookings</p>
@@ -278,21 +266,16 @@ export default function SitterProfilePage() {
                   </ul>
                 )}
               </div>
-            </SitterCardBody>
-          </SitterCard>
+          </div>
 
           {/* ── Stripe Connect ───────────────────────────────────────── */}
-          <div id="payouts">
-          <SitterCard>
-            <SitterCardHeader>
-              <div className="flex items-center justify-between">
-                <p className="text-base font-semibold text-text-primary">Payouts</p>
+          <div id="payouts" className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Payouts</h3>
                 <StatusChip variant={stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'success' : 'warning'}>
                   {stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'Connected' : 'Setup required'}
                 </StatusChip>
-              </div>
-            </SitterCardHeader>
-            <SitterCardBody>
+            </div>
               {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
                 <p className="text-sm text-text-secondary">Stripe connected. Payouts are enabled.</p>
               ) : stripeStatus?.connected ? (
@@ -310,13 +293,10 @@ export default function SitterProfilePage() {
                   </Button>
                 </>
               )}
-            </SitterCardBody>
-          </SitterCard>
           </div>
 
           {/* ── Sign Out ───────────────────────────────────────── */}
-          <SitterCard>
-            <SitterCardBody>
+          <div className="rounded-2xl bg-surface-secondary p-5">
               <Button
                 variant="secondary"
                 size="md"
@@ -326,12 +306,10 @@ export default function SitterProfilePage() {
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign out
               </Button>
-            </SitterCardBody>
-          </SitterCard>
+          </div>
 
           {/* ── Danger Zone ──────────────────────────────────────────── */}
-          <SitterCard className="border-status-danger-border">
-            <SitterCardBody>
+          <div className="rounded-2xl border border-status-danger-border bg-surface-primary p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Delete account</p>
@@ -346,8 +324,7 @@ export default function SitterProfilePage() {
                   Delete
                 </Button>
               </div>
-            </SitterCardBody>
-          </SitterCard>
+          </div>
         </div>
       ) : null}
 
