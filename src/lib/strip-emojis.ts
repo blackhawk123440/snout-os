@@ -26,10 +26,17 @@ export function renderClientPreview(
   maxLength: number = DEFAULT_PREVIEW_LENGTH
 ): string {
   const stripped = stripEmojisFromPreview(text)
+    // Strip automated system message boilerplate from client-facing previews
+    .replace(/,?\s*here is your tip link:?\s*/gi, '. ')
+    .replace(/,?\s*your payment link[^:]*is ready:?\s*/gi, '. ')
+    .replace(/,?\s*your tip link:?\s*/gi, '. ')
     // Strip URLs (http/https/localhost) from client-facing previews
     .replace(/https?:\/\/[^\s]+/gi, '')
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    // Clean up leading/trailing punctuation artifacts
+    .replace(/^[.,;:\s]+/, '')
+    .replace(/[.,;:\s]+$/, '');
   if (stripped.length <= maxLength) return stripped;
   return stripped.slice(0, maxLength).trim() + "…";
 }

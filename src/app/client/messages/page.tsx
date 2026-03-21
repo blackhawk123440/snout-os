@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, ChevronRight } from 'lucide-react';
+import { MessageCircle, ChevronRight, Send } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
@@ -24,6 +24,7 @@ export default function ClientMessagesPage() {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
+    if (days === 1) return 'Yesterday';
     if (days < 7) return `${days}d ago`;
     return new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
@@ -37,7 +38,7 @@ export default function ClientMessagesPage() {
           </h1>
           <p className="text-[14px] text-text-secondary mt-0.5">
             {threads.length > 0
-              ? `${threads.length} conversation${threads.length !== 1 ? 's' : ''}`
+              ? `${threads.length} conversation${threads.length !== 1 ? 's' : ''} with your care team`
               : 'Chat with your sitter'}
           </p>
         </div>
@@ -65,9 +66,11 @@ export default function ClientMessagesPage() {
         </div>
       ) : (
         <div className="mt-4 space-y-4">
+          {/* Thread list */}
           <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
-            <div className="px-5 pt-5 pb-3">
+            <div className="px-5 pt-5 pb-3 flex items-center justify-between">
               <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Conversations</h2>
+              <span className="text-[11px] font-semibold text-text-disabled tabular-nums">{threads.length}</span>
             </div>
             <div className="divide-y divide-border-muted">
               {threads.map((thread) => {
@@ -77,13 +80,14 @@ export default function ClientMessagesPage() {
                 const rawPreview = thread.preview
                   ? renderClientPreview(thread.preview, 80).trim()
                   : null;
-                const previewText = rawPreview || serviceName || 'No messages yet';
+                // If preview is empty after stripping (e.g. was just a URL), show the service name
+                const previewText = (rawPreview && rawPreview.length > 1) ? rawPreview : (serviceName || 'Tap to view conversation');
                 const isUnread = thread.status === 'unread';
 
                 return (
                   <div
                     key={thread.id}
-                    className="flex items-center gap-3 px-5 py-4 min-h-[72px] cursor-pointer hover:bg-surface-secondary transition-colors"
+                    className="flex items-center gap-3 px-5 py-4 min-h-[76px] cursor-pointer hover:bg-surface-secondary transition-colors"
                     onClick={() => router.push(`/client/messages/${thread.id}`)}
                     role="button"
                     tabIndex={0}
@@ -94,15 +98,20 @@ export default function ClientMessagesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`text-[14px] truncate ${isUnread ? 'font-bold text-text-primary' : 'font-semibold text-text-primary'}`}>
-                          {sitterName}
-                        </p>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className={`text-[14px] truncate ${isUnread ? 'font-bold text-text-primary' : 'font-semibold text-text-primary'}`}>
+                            {sitterName}
+                          </p>
+                          {isUnread && (
+                            <span className="shrink-0 w-2 h-2 rounded-full bg-accent-primary" />
+                          )}
+                        </div>
                         <p className="text-[11px] text-text-tertiary tabular-nums shrink-0">
                           {formatRelative(thread.lastActivityAt)}
                         </p>
                       </div>
                       {serviceName && (
-                        <p className="text-[12px] text-text-tertiary mt-0.5">{serviceName}</p>
+                        <p className="text-[12px] text-text-tertiary mt-0.5 truncate">{serviceName}</p>
                       )}
                       <p className={`text-[13px] truncate mt-0.5 ${isUnread ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
                         {previewText}
@@ -114,6 +123,19 @@ export default function ClientMessagesPage() {
               })}
             </div>
           </div>
+
+          {/* Contextual footer — gives the page more presence */}
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-tertiary">
+                <Send className="h-5 w-5 text-accent-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-text-primary">Need to reach your sitter?</p>
+                <p className="text-[13px] text-text-secondary mt-0.5">Open a conversation to send a message about upcoming or past visits.</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </LayoutWrapper>
@@ -122,13 +144,14 @@ export default function ClientMessagesPage() {
 
 function MessagesSkeleton() {
   return (
-    <div className="mt-4">
+    <div className="mt-4 space-y-4">
       <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden animate-pulse">
-        <div className="px-5 pt-5 pb-3">
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <div className="h-3 w-24 rounded bg-surface-tertiary" />
+          <div className="h-3 w-4 rounded bg-surface-tertiary" />
         </div>
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-3 px-5 py-4">
+          <div key={i} className="flex items-center gap-3 px-5 py-4 min-h-[76px]">
             <div className="w-11 h-11 rounded-2xl bg-surface-tertiary shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-4 w-28 rounded bg-surface-tertiary" />
@@ -137,6 +160,15 @@ function MessagesSkeleton() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="rounded-2xl border border-border-default bg-surface-primary p-5">
+        <div className="flex items-center gap-4">
+          <div className="h-11 w-11 rounded-2xl bg-surface-tertiary shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-48 rounded bg-surface-tertiary" />
+            <div className="h-3 w-64 rounded bg-surface-tertiary" />
+          </div>
+        </div>
       </div>
     </div>
   );

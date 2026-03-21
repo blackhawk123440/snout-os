@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, ChevronRight } from 'lucide-react';
+import { FileText, ChevronRight, Star, Clock } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
+import { renderClientPreview } from '@/lib/strip-emojis';
 import { useClientReports } from '@/lib/api/client-hooks';
 
 function parseFirstPhoto(raw: string | null): string | null {
@@ -26,7 +27,15 @@ export default function ClientReportsPage() {
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 
-  // Split: most recent gets hero treatment, rest go in a list
+  const formatTime = (d: string | null) =>
+    d ? new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+
+  const ratedCount = reports.filter(r => r.clientRating != null).length;
+  const avgRating = ratedCount > 0
+    ? (reports.reduce((sum, r) => sum + (r.clientRating ?? 0), 0) / ratedCount).toFixed(1)
+    : null;
+  const photosCount = reports.filter(r => parseFirstPhoto(r.mediaUrls)).length;
+
   const heroReport = reports[0] || null;
   const restReports = reports.slice(1);
 
@@ -67,10 +76,33 @@ export default function ClientReportsPage() {
         </div>
       ) : (
         <div className="space-y-4 mt-4">
+          {/* Summary strip — gives page presence even with few reports */}
+          {reports.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-accent-tertiary p-4">
+                <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Reports</p>
+                <p className="mt-2 text-2xl font-bold text-accent-primary tabular-nums">{reports.length}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-primary shadow-sm p-4">
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Avg rating</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">{avgRating ?? '\u2014'}</p>
+                {avgRating && <p className="mt-0.5 text-[11px] text-text-tertiary">out of 5</p>}
+              </div>
+              <div className="rounded-2xl bg-surface-primary shadow-sm p-4">
+                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Photos</p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">{photosCount}</p>
+              </div>
+            </div>
+          )}
+
           {/* Hero report — most recent, full card */}
           {heroReport && (() => {
             const photo = parseFirstPhoto(heroReport.mediaUrls);
-            const preview = heroReport.personalNote?.slice(0, 160) || heroReport.content?.slice(0, 160) || '';
+            const preview = heroReport.personalNote || heroReport.content || '';
+            const cleanPreview = renderClientPreview(preview, 160);
+            const visitTime = heroReport.visitStarted
+              ? `${formatTime(heroReport.visitStarted)}${heroReport.visitCompleted ? ` \u2013 ${formatTime(heroReport.visitCompleted)}` : ''}`
+              : null;
             return (
               <div
                 className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition"
@@ -92,23 +124,32 @@ export default function ClientReportsPage() {
                   <h3 className="text-[16px] font-semibold text-text-primary mt-1">
                     {heroReport.booking?.service || 'Visit report'}
                   </h3>
-                  <p className="text-[14px] text-text-secondary line-clamp-2 leading-relaxed mt-1">{preview}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-3">
+                  {(heroReport.sitterName || visitTime) && (
+                    <div className="flex items-center gap-2 mt-1.5">
                       {heroReport.sitterName && (
                         <p className="text-[12px] text-text-tertiary">with {heroReport.sitterName}</p>
                       )}
-                      {heroReport.clientRating != null && (
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <span key={star} className={`text-sm ${star <= heroReport.clientRating! ? 'text-status-warning-fill' : 'text-border-default'}`}>{'\u2605'}</span>
-                          ))}
-                        </div>
+                      {visitTime && (
+                        <p className="text-[12px] text-text-tertiary flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {visitTime}
+                        </p>
                       )}
                     </div>
-                    {heroReport.clientRating == null && (
+                  )}
+                  {cleanPreview && (
+                    <p className="text-[14px] text-text-secondary line-clamp-3 leading-relaxed mt-2">{cleanPreview}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-muted">
+                    {heroReport.clientRating != null ? (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 text-status-warning-fill" />
+                        <span className="text-[13px] font-semibold text-text-primary tabular-nums">{heroReport.clientRating}</span>
+                        <span className="text-[12px] text-text-tertiary">/ 5</span>
+                      </div>
+                    ) : (
                       <span className="text-[12px] font-medium text-accent-primary">Rate this visit</span>
                     )}
+                    <span className="text-[12px] font-medium text-accent-primary">View full report</span>
                   </div>
                 </div>
               </div>
@@ -118,16 +159,20 @@ export default function ClientReportsPage() {
           {/* Remaining reports — compact unified list */}
           {restReports.length > 0 && (
             <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
-              <div className="px-5 pt-5 pb-3">
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between">
                 <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Previous reports</h2>
+                <span className="text-[11px] font-semibold text-text-disabled tabular-nums">{restReports.length}</span>
               </div>
               <div className="divide-y divide-border-muted">
                 {restReports.map((report) => {
                   const photo = parseFirstPhoto(report.mediaUrls);
+                  const visitTime = report.visitStarted
+                    ? `${formatTime(report.visitStarted)}${report.visitCompleted ? ` \u2013 ${formatTime(report.visitCompleted)}` : ''}`
+                    : null;
                   return (
                     <div
                       key={report.id}
-                      className="flex items-center gap-3 px-5 py-3.5 min-h-[64px] cursor-pointer hover:bg-surface-secondary transition-colors"
+                      className="flex items-center gap-3 px-5 py-3.5 min-h-[72px] cursor-pointer hover:bg-surface-secondary transition-colors"
                       onClick={() => router.push(`/client/reports/${report.id}`)}
                       role="button"
                       tabIndex={0}
@@ -141,9 +186,17 @@ export default function ClientReportsPage() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-semibold text-text-primary truncate">
-                          {report.booking?.service || 'Visit report'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[14px] font-semibold text-text-primary truncate">
+                            {report.booking?.service || 'Visit report'}
+                          </p>
+                          {report.clientRating != null && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Star className="w-3 h-3 text-status-warning-fill" />
+                              <span className="text-[11px] font-semibold text-text-secondary tabular-nums">{report.clientRating}</span>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-[12px] text-text-tertiary tabular-nums">
                             {report.createdAt ? formatDate(report.createdAt) : '\u2014'}
@@ -151,14 +204,10 @@ export default function ClientReportsPage() {
                           {report.sitterName && (
                             <p className="text-[12px] text-text-tertiary">{'\u00b7'} {report.sitterName}</p>
                           )}
+                          {visitTime && (
+                            <p className="text-[12px] text-text-tertiary">{'\u00b7'} {visitTime}</p>
+                          )}
                         </div>
-                        {report.clientRating != null && (
-                          <div className="flex items-center gap-0.5 mt-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span key={star} className={`text-[11px] ${star <= report.clientRating! ? 'text-status-warning-fill' : 'text-border-default'}`}>{'\u2605'}</span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <ChevronRight className="h-4 w-4 text-text-disabled shrink-0" />
                     </div>
@@ -176,6 +225,14 @@ export default function ClientReportsPage() {
 function ReportsSkeleton() {
   return (
     <div className="space-y-4 animate-pulse mt-4">
+      <div className="grid grid-cols-3 gap-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl border border-border-default bg-surface-primary p-4">
+            <div className="h-3 w-14 rounded bg-surface-tertiary" />
+            <div className="mt-3 h-7 w-8 rounded bg-surface-tertiary" />
+          </div>
+        ))}
+      </div>
       <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
         <div className="h-[200px] bg-surface-tertiary" />
         <div className="p-5 space-y-2">
@@ -189,7 +246,7 @@ function ReportsSkeleton() {
         <div className="px-5 pt-5 pb-3">
           <div className="h-3 w-28 rounded bg-surface-tertiary" />
         </div>
-        {[1, 2, 3].map((i) => (
+        {[1, 2].map((i) => (
           <div key={i} className="flex items-center gap-3 px-5 py-3.5">
             <div className="w-12 h-12 rounded-xl bg-surface-tertiary shrink-0" />
             <div className="flex-1 space-y-2">
