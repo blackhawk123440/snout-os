@@ -26,11 +26,19 @@ async function clientFetch<T>(url: string, init?: RequestInit): Promise<T> {
 export interface ClientHomeData {
   clientName: string;
   upcomingCount: number;
+  upcomingBookings: Array<{
+    id: string;
+    service: string;
+    startAt: string;
+    status: string;
+    sitterName?: string | null;
+  }>;
   recentBookings: Array<{
     id: string;
     service: string;
     startAt: string;
     status: string;
+    sitterName?: string | null;
   }>;
   latestReport?: {
     id: string;
@@ -39,6 +47,12 @@ export interface ClientHomeData {
     service?: string;
     mediaUrls?: string | null;
   } | null;
+  pets: Array<{
+    id: string;
+    name: string | null;
+    species: string | null;
+    photoUrl: string | null;
+  }>;
 }
 
 export interface ClientOnboardingStatus {

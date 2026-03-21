@@ -22,7 +22,7 @@ export async function GET() {
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    const [client, upcoming, recent, latestReport] = await Promise.all([
+    const [client, upcoming, recent, latestReport, pets] = await Promise.all([
       (prisma as any).client.findFirst({
         where: whereOrg(ctx.orgId, { id: ctx.clientId }),
         select: { firstName: true, lastName: true },
@@ -33,13 +33,19 @@ export async function GET() {
           status: { in: ['pending', 'confirmed', 'in_progress'] },
           startAt: { gte: now },
         }),
-        select: { id: true, service: true, startAt: true, status: true },
+        select: {
+          id: true, service: true, startAt: true, status: true,
+          sitter: { select: { firstName: true, lastName: true } },
+        },
         orderBy: { startAt: 'asc' },
         take: 5,
       }),
       (prisma as any).booking.findMany({
         where: whereOrg(ctx.orgId, { clientId: ctx.clientId }),
-        select: { id: true, service: true, startAt: true, status: true },
+        select: {
+          id: true, service: true, startAt: true, status: true,
+          sitter: { select: { firstName: true, lastName: true } },
+        },
         orderBy: { startAt: 'desc' },
         take: 10,
       }),
@@ -51,6 +57,11 @@ export async function GET() {
         select: { id: true, content: true, createdAt: true, mediaUrls: true, booking: { select: { service: true } } },
         orderBy: { createdAt: 'desc' },
       }),
+      (prisma as any).pet.findMany({
+        where: whereOrg(ctx.orgId, { clientId: ctx.clientId }),
+        select: { id: true, name: true, species: true, photoUrl: true },
+        take: 10,
+      }),
     ]);
 
     const clientName = client
@@ -58,12 +69,16 @@ export async function GET() {
       : null;
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
-    const recentBookings = recent.map((b: any) => ({
+    const mapBooking = (b: any) => ({
       id: b.id,
       service: b.service,
       startAt: toIso(b.startAt),
       status: b.status,
-    }));
+      sitterName: b.sitter
+        ? [b.sitter.firstName, b.sitter.lastName].filter(Boolean).join(' ') || null
+        : null,
+    });
+    const recentBookings = recent.map(mapBooking);
 
     const latestReportPayload = latestReport
       ? {
@@ -78,8 +93,15 @@ export async function GET() {
     return NextResponse.json({
       clientName,
       upcomingCount: upcoming.length,
+      upcomingBookings: upcoming.map(mapBooking),
       recentBookings,
       latestReport: latestReportPayload,
+      pets: pets.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        species: p.species,
+        photoUrl: p.photoUrl,
+      })),
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
