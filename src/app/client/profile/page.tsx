@@ -174,11 +174,23 @@ function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; on
             </div>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            <p className="text-[14px] font-medium text-text-primary">{data.name || 'Client'}</p>
-            {data.email && <p className="text-[13px] text-text-secondary">{data.email}</p>}
-            {data.phone && <p className="text-[13px] text-text-secondary">{data.phone}</p>}
-            {data.address ? <p className="text-[13px] text-text-secondary">{data.address}</p> : <p className="text-[13px] text-text-tertiary italic">No address on file</p>}
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] text-text-tertiary">Name</p>
+              <p className="text-[14px] font-medium text-text-primary mt-0.5">{data.name || 'Client'}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-text-tertiary">Email</p>
+              <p className="text-[14px] text-text-primary mt-0.5">{data.email || '\u2014'}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-text-tertiary">Phone</p>
+              <p className="text-[14px] text-text-primary mt-0.5">{data.phone || '\u2014'}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-text-tertiary">Address</p>
+              {data.address ? <p className="text-[14px] text-text-primary mt-0.5">{data.address}</p> : <p className="text-[13px] text-text-tertiary italic mt-0.5">No address on file</p>}
+            </div>
           </div>
         )}
       </div>

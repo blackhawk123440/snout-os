@@ -141,7 +141,7 @@ export default function ClientBookingsPage() {
                 return (
                   <div
                     key={booking.id}
-                    className={`flex items-center gap-3 px-5 py-3.5 min-h-[64px] cursor-pointer hover:bg-surface-secondary transition-colors ${isCompleted ? 'opacity-50' : ''}`}
+                    className={`flex items-center gap-3 px-5 py-4 min-h-[72px] cursor-pointer hover:bg-surface-secondary transition-colors ${isCompleted ? 'opacity-50' : ''}`}
                     onClick={() => router.push(`/client/bookings/${booking.id}`)}
                     role="button"
                     tabIndex={0}
@@ -151,17 +151,15 @@ export default function ClientBookingsPage() {
                       {booking.service?.[0] || 'V'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-semibold text-text-primary truncate">{booking.service}</p>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`h-2 w-2 rounded-full ${statusDotClass(booking.status)}`} />
-                          <span className="text-[11px] font-medium text-text-tertiary">{statusLabel(booking.status)}</span>
-                        </div>
-                      </div>
+                      <p className="text-[14px] font-semibold text-text-primary truncate">{booking.service}</p>
                       <p className="text-[12px] text-text-secondary tabular-nums mt-0.5">
                         {formatDate(booking.startAt)} {'\u00b7'} {formatTime(booking.startAt)}
                         {booking.sitter?.name ? ` \u00b7 ${booking.sitter.name}` : ''}
                       </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`h-2 w-2 rounded-full ${statusDotClass(booking.status)}`} />
+                        <span className="text-[11px] font-medium text-text-tertiary">{statusLabel(booking.status)}</span>
+                      </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-text-disabled shrink-0" />
                   </div>

@@ -111,8 +111,10 @@ export default function ClientReportsPage() {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${heroReport.id}`)}
               >
-                {photo && (
+                {photo ? (
                   <img src={photo} alt="Visit photo" className="w-full h-[200px] object-cover" />
+                ) : (
+                  <div className="h-16 bg-gradient-to-r from-accent-secondary to-accent-tertiary" />
                 )}
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-1">
@@ -179,9 +181,9 @@ export default function ClientReportsPage() {
                       onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${report.id}`)}
                     >
                       {photo ? (
-                        <img src={photo} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                        <img src={photo} alt="" className="w-14 h-14 rounded-2xl object-cover shrink-0" />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-accent-tertiary flex items-center justify-center shrink-0">
+                        <div className="w-14 h-14 rounded-2xl bg-accent-tertiary flex items-center justify-center shrink-0">
                           <FileText className="h-5 w-5 text-accent-primary" />
                         </div>
                       )}
