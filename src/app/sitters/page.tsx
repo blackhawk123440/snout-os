@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar } from '@/components/app';
@@ -19,6 +20,7 @@ type SitterRow = {
 };
 
 export default function SittersPage() {
+  const router = useRouter();
   const [rows, setRows] = useState<SitterRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function SittersPage() {
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Sitters"
-          subtitle="Operator assignment and availability surface"
+          subtitle={total > 0 ? `${total} sitter${total !== 1 ? 's' : ''}` : 'Your care team'}
           actions={
             <Link href="/bookings/new">
               <Button leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
@@ -142,14 +144,14 @@ export default function SittersPage() {
                   ]}
                   data={filtered}
                   keyExtractor={(r) => r.id}
-                  onRowClick={(r) => (window.location.href = `/sitters/${r.id}`)}
+                  onRowClick={(r) => router.push(`/sitters/${r.id}`)}
                   emptyMessage="No sitters"
                 />
               </DataTableShell>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-text-secondary">
-                  Page {page} · {total} sitters
-                </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border-muted pt-3">
+                <p className="text-[12px] text-text-tertiary tabular-nums">
+                  {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
+                </p>
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"

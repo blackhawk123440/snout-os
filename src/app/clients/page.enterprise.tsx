@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
@@ -21,6 +22,7 @@ type ClientRow = {
 };
 
 export default function ClientsEnterprisePage() {
+  const router = useRouter();
   const [filters, setFilters] = useState<Record<string, string>>({
     search: '',
     sort: 'recent',
@@ -62,7 +64,7 @@ export default function ClientsEnterprisePage() {
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Clients"
-          subtitle="Operator surface for client health and actions"
+          subtitle={total > 0 ? `${total} client${total !== 1 ? 's' : ''}` : 'All clients'}
           actions={
             <Link href="/bookings/new">
               <Button leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
@@ -115,7 +117,7 @@ export default function ClientsEnterprisePage() {
             <EmptyState
               title="No clients found"
               description="Add your first booking to create client records."
-              primaryAction={{ label: 'Create booking', onClick: () => (window.location.href = '/bookings/new') }}
+              primaryAction={{ label: 'Create booking', onClick: () => router.push('/bookings/new') }}
             />
           ) : (
             <>
@@ -155,14 +157,14 @@ export default function ClientsEnterprisePage() {
                   ]}
                   data={filtered}
                   keyExtractor={(r) => r.id}
-                  onRowClick={(r) => (window.location.href = `/clients/${r.id}`)}
+                  onRowClick={(r) => router.push(`/clients/${r.id}`)}
                   emptyMessage="No clients"
                 />
               </DataTableShell>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-text-secondary">
-                  Page {page} · {total} clients
-                </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border-muted pt-3">
+                <p className="text-[12px] text-text-tertiary tabular-nums">
+                  {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
+                </p>
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"

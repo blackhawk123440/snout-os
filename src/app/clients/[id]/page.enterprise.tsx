@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
@@ -38,6 +38,7 @@ type ClientData = {
 };
 
 export default function ClientDetailEnterprisePage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const clientId = params.id;
 
@@ -149,7 +150,7 @@ export default function ClientDetailEnterprisePage() {
                 ]}
                 data={data.bookings}
                 keyExtractor={(r) => r.id}
-                onRowClick={(r) => (window.location.href = `/bookings/${r.id}`)}
+                onRowClick={(r) => router.push(`/bookings/${r.id}`)}
                 emptyMessage="No bookings"
               />
             </DataTableShell>

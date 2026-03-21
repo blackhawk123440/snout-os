@@ -183,8 +183,8 @@ export default function AnalyticsPage() {
 
         {error && (
           <Section>
-            <Card className="border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm text-amber-800">{error}</p>
+            <Card className="border-status-warning-border bg-status-warning-bg p-4">
+              <p className="text-sm text-status-warning-text">{error}</p>
               <Button size="sm" className="mt-2" onClick={() => void load()}>
                 Retry
               </Button>
