@@ -297,14 +297,15 @@ function SitterInboxContent() {
 
           <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl bg-surface-primary shadow-md md:flex-row overflow-hidden">
             {/* Thread list - hidden on mobile when conversation open */}
-            <div className={`flex w-full flex-col border-b border-border-default md:w-80 md:border-b-0 md:border-r ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
-          <div className="border-b border-border-default p-4">
+            <div className={`flex w-full flex-col border-b border-border-default md:w-80 md:border-b-0 md:border-r bg-surface-secondary/50 ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
+          <div className="border-b border-border-default p-4 bg-surface-primary">
+            <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2.5">Threads</p>
             <input
               type="search"
-              placeholder="Search threads..."
+              placeholder="Search clients..."
               value={threadSearch}
               onChange={(e) => setThreadSearch(e.target.value)}
-              className="w-full rounded-xl border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
+              className="w-full rounded-xl border border-border-strong bg-surface-secondary px-3 py-2.5 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus focus:bg-surface-primary"
             />
           </div>
           <div className="flex-1 overflow-y-auto">

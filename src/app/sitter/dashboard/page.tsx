@@ -93,15 +93,15 @@ function SitterDashboardContent() {
             <p className="mt-2 text-3xl font-bold text-accent-primary tabular-nums">{completedCount}<span className="text-base font-medium text-accent-primary/60">/{totalToday}</span></p>
             {inProgressCount > 0 && <p className="mt-1 text-xs font-medium text-accent-primary">{inProgressCount} in progress</p>}
           </div>
-          <div className={`rounded-2xl p-4 ${pendingRequests.length > 0 ? 'bg-status-warning-bg' : 'bg-surface-secondary'}`}>
+          <div className={`rounded-2xl p-4 ${pendingRequests.length > 0 ? 'bg-status-warning-bg' : 'bg-surface-primary shadow-sm'}`}>
             <p className={`text-[11px] font-semibold uppercase tracking-wider ${pendingRequests.length > 0 ? 'text-status-warning-text' : 'text-text-tertiary'}`}>Pending</p>
             <p className={`mt-2 text-3xl font-bold tabular-nums ${pendingRequests.length > 0 ? 'text-status-warning-text' : 'text-text-primary'}`}>{pendingRequests.length}</p>
           </div>
-          <div className="rounded-2xl bg-surface-secondary p-4">
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-4">
             <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Earned</p>
             <p className="mt-2 text-3xl font-bold text-text-primary tabular-nums">${Math.round(totalEarnings)}</p>
           </div>
-          <div className="rounded-2xl bg-surface-secondary p-4">
+          <div className="rounded-2xl bg-surface-primary shadow-sm p-4">
             <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Rating</p>
             <p className="mt-2 text-3xl font-bold text-text-primary tabular-nums">{dash.performance?.clientRating ? dash.performance.clientRating.toFixed(1) : '—'}</p>
             {dash.performance?.clientRating && <p className="mt-1 text-xs text-text-tertiary">out of 5.0</p>}
@@ -220,7 +220,7 @@ function SitterDashboardContent() {
         )}
 
         {/* Performance */}
-        <div className="rounded-2xl bg-surface-secondary p-5">
+        <div className="rounded-2xl bg-surface-primary shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Performance</h3>
             <Link href="/sitter/performance" className="text-xs font-semibold text-accent-primary hover:underline">Full metrics →</Link>
@@ -231,7 +231,9 @@ function SitterDashboardContent() {
                 {dash.currentTier.name.charAt(0)}
               </div>
             )}
-            <div className="grid grid-cols-3 gap-4 flex-1">
+            <div className="flex-1">
+              {dash.currentTier && <p className="text-sm font-bold text-text-primary mb-2">{dash.currentTier.name} tier</p>}
+              <div className="grid grid-cols-3 gap-3 rounded-xl bg-surface-secondary p-3">
               <div>
                 <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Accept</p>
                 <p className="mt-1 text-xl font-bold text-text-primary tabular-nums">{dash.performance?.acceptanceRate != null ? `${Math.round(dash.performance.acceptanceRate)}%` : '—'}</p>
@@ -243,6 +245,7 @@ function SitterDashboardContent() {
               <div>
                 <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">On-time</p>
                 <p className="mt-1 text-xl font-bold text-text-primary tabular-nums">{dash.performance?.onTimeRate != null ? `${Math.round(dash.performance.onTimeRate)}%` : '—'}</p>
+              </div>
               </div>
             </div>
           </div>

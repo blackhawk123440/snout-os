@@ -8,7 +8,6 @@ import {
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
-  SitterEmptyState,
 } from '@/components/sitter';
 import { calculateTransferSummary } from './earnings-helpers';
 import { useSitterEarnings, useSitterCompletedJobs, useSitterTransfers } from '@/lib/api/sitter-portal-hooks';
@@ -56,10 +55,35 @@ interface PayoutTransfer {
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
+type PeriodKey = 'all' | 'this_week' | 'this_month' | 'last_month';
+
+function getPeriodDates(key: PeriodKey): { from?: string; to?: string; label: string } {
+  const now = new Date();
+  if (key === 'this_week') {
+    const day = now.getDay();
+    const start = new Date(now);
+    start.setDate(now.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    return { from: start.toISOString(), to: now.toISOString(), label: 'This week' };
+  }
+  if (key === 'this_month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: start.toISOString(), to: now.toISOString(), label: 'This month' };
+  }
+  if (key === 'last_month') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    return { from: start.toISOString(), to: end.toISOString(), label: 'Last month' };
+  }
+  return { label: 'All time' };
+}
+
 export default function SitterEarningsPage() {
   const [selectedJob, setSelectedJob] = useState<CompletedJob | null>(null);
+  const [period, setPeriod] = useState<PeriodKey>('all');
 
-  const earningsQuery = useSitterEarnings();
+  const periodDates = getPeriodDates(period);
+  const earningsQuery = useSitterEarnings(periodDates.from, periodDates.to);
   const jobsQuery = useSitterCompletedJobs();
   const transfersQuery = useSitterTransfers();
 
@@ -94,17 +118,36 @@ export default function SitterEarningsPage() {
         />
       ) : data ? (
         <div className="space-y-4">
+          {/* Period selector */}
+          <div className="flex gap-1.5 rounded-xl bg-surface-secondary p-1">
+            {([['all', 'All time'], ['this_week', 'This week'], ['this_month', 'This month'], ['last_month', 'Last month']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPeriod(key)}
+                className={`flex-1 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                  period === key ? 'bg-surface-primary text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Earnings hero */}
           <div className="rounded-2xl bg-accent-tertiary p-6">
-            <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Total earnings</p>
+            <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">
+              {period === 'all' ? 'Total earnings' : periodDates.label}
+            </p>
             <p className="mt-3 text-4xl font-bold text-text-primary tabular-nums">
-              ${data.earningsTotal.toFixed(2)}
+              ${(period !== 'all' && data.periodEarnings != null ? data.periodEarnings : data.earningsTotal).toFixed(2)}
             </p>
             <div className="mt-3 flex items-center gap-3 text-sm text-text-secondary">
-              <span>{data.completedBookingsCount} visits</span>
+              <span>{period !== 'all' && data.periodCount != null ? data.periodCount : data.completedBookingsCount} visits</span>
               <span className="text-text-disabled">·</span>
               <span>{data.commissionPercentage}% commission</span>
             </div>
-            {data.completedBookingsCount > 0 && (
+            {data.completedBookingsCount > 0 && period === 'all' && (
               <p className="mt-1 text-sm text-text-tertiary tabular-nums">
                 ${data.averagePerVisit.toFixed(2)} avg per visit
               </p>
@@ -129,111 +172,119 @@ export default function SitterEarningsPage() {
             )}
           </div>
 
-          <div className="rounded-2xl bg-surface-secondary p-5">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
+          {/* Financial Detail */}
+          <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
+            {/* Period summary */}
+            <div className="grid grid-cols-2 divide-x divide-border-muted border-b border-border-muted">
+              <div className="p-5">
                 <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">This month</p>
-                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
-                  ${data.earningsThisMonth.toFixed(2)}
-                </p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">${data.earningsThisMonth.toFixed(2)}</p>
                 <p className="mt-1 text-xs text-text-tertiary">{data.completedThisMonthCount} visits</p>
               </div>
-              <div>
+              <div className="p-5">
                 <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Last month</p>
-                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
-                  ${data.earningsLastMonth.toFixed(2)}
-                </p>
+                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">${data.earningsLastMonth.toFixed(2)}</p>
                 <p className="mt-1 text-xs text-text-tertiary">{data.completedLastMonthCount} visits</p>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-2xl bg-surface-secondary p-5">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Pending</p>
-                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
-                  ${(transferSummary.pendingCents / 100).toFixed(2)}
-                </p>
+            {/* Payout status */}
+            <div className="grid grid-cols-2 divide-x divide-border-muted border-b border-border-muted">
+              <div className="p-5 bg-accent-tertiary/50">
+                <p className="text-[11px] font-semibold text-accent-primary uppercase tracking-wider">Pending</p>
+                <p className="mt-2 text-xl font-bold text-text-primary tabular-nums">${(transferSummary.pendingCents / 100).toFixed(2)}</p>
                 <p className="mt-1 text-xs text-text-tertiary">Awaiting payout</p>
               </div>
-              <div>
+              <div className="p-5">
                 <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Paid (30d)</p>
-                <p className="mt-2 text-2xl font-bold text-text-primary tabular-nums">
-                  ${(transferSummary.paid30dCents / 100).toFixed(2)}
-                </p>
+                <p className="mt-2 text-xl font-bold text-text-primary tabular-nums">${(transferSummary.paid30dCents / 100).toFixed(2)}</p>
                 <p className="mt-1 text-xs text-text-tertiary">Last 30 days</p>
               </div>
             </div>
+
+            {/* Payout transfers */}
+            <div className="border-b border-border-muted">
+              <div className="px-5 pt-5 pb-3">
+                <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Payout transfers</h3>
+              </div>
+              {transfersLoading ? (
+                <div className="px-5 pb-5"><SitterSkeletonList count={2} /></div>
+              ) : transfers.length === 0 ? (
+                <div className="px-5 py-8 text-center bg-surface-secondary/50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary mb-3">
+                    <svg className="h-5 w-5 text-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                  </div>
+                  <p className="text-sm font-semibold text-text-primary">No payouts yet</p>
+                  <p className="mt-1 text-xs text-text-tertiary max-w-[220px] mx-auto">Transfers will appear here after completed bookings are paid out.</p>
+                </div>
+              ) : (
+                <DataTableShell stickyHeader>
+                  <Table
+                    columns={[
+                      { key: 'amount', header: 'Amount', mobileOrder: 1, mobileLabel: 'Amount', render: (t) => (
+                        <span className="tabular-nums font-medium">${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}</span>
+                      )},
+                      { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (t) =>
+                        t.createdAt ? formatDate(t.createdAt) : '—'
+                      },
+                      { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (t) => (
+                        <span className="flex items-center gap-1">
+                          <StatusChip
+                            variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
+                            ariaLabel={`Transfer status: ${t.status}`}
+                          >
+                            {t.status}
+                          </StatusChip>
+                          {t.lastError && (
+                            <span className="text-status-danger-text" title={t.lastError}>(failed)</span>
+                          )}
+                        </span>
+                      )},
+                    ]}
+                    data={transfers}
+                    keyExtractor={(t) => t.id}
+                    emptyMessage="No payouts yet"
+                    forceTableLayout
+                  />
+                </DataTableShell>
+              )}
+            </div>
+
+            {/* Completed jobs */}
+            <div>
+              <div className="px-5 pt-5 pb-3">
+                <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Completed jobs</h3>
+              </div>
+              {jobsLoading ? (
+                <div className="px-5 pb-5"><SitterSkeletonList count={2} /></div>
+              ) : completedJobs.length === 0 ? (
+                <div className="px-5 py-8 text-center bg-surface-secondary/50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary mb-3">
+                    <svg className="h-5 w-5 text-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  </div>
+                  <p className="text-sm font-semibold text-text-primary">No completed jobs yet</p>
+                  <p className="mt-1 text-xs text-text-tertiary max-w-[220px] mx-auto">Your earnings breakdown will appear here after visits are completed.</p>
+                </div>
+              ) : (
+                <DataTableShell stickyHeader>
+                  <Table
+                    columns={[
+                      { key: 'client', header: 'Client', mobileOrder: 1, mobileLabel: 'Client', render: (job) => job.clientName },
+                      { key: 'service', header: 'Service', mobileOrder: 2, mobileLabel: 'Service', hideBelow: 'md', render: (job) => job.service },
+                      { key: 'date', header: 'Date', mobileOrder: 3, mobileLabel: 'Date', render: (job) => formatDate(job.endAt) },
+                      { key: 'amount', header: 'Amount', mobileOrder: 4, mobileLabel: 'Amount', render: (job) => (
+                        <span className="tabular-nums font-semibold">${job.afterSplit.toFixed(2)}</span>
+                      )},
+                    ]}
+                    data={completedJobs}
+                    keyExtractor={(job) => job.id}
+                    emptyMessage="No completed jobs yet"
+                    onRowClick={(job) => setSelectedJob(job as CompletedJob)}
+                    forceTableLayout
+                  />
+                </DataTableShell>
+              )}
+            </div>
           </div>
-
-          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide mt-2">Payout transfers</h3>
-          {transfersLoading ? (
-            <SitterSkeletonList count={2} />
-          ) : transfers.length === 0 ? (
-            <SitterEmptyState
-              title="No payouts yet"
-              subtitle="Transfers will appear here after completed bookings are paid out."
-            />
-          ) : (
-            <DataTableShell stickyHeader>
-              <Table
-                columns={[
-                  { key: 'amount', header: 'Amount', mobileOrder: 1, mobileLabel: 'Amount', render: (t) => (
-                    <span className="tabular-nums font-medium">${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}</span>
-                  )},
-                  { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (t) =>
-                    t.createdAt ? formatDate(t.createdAt) : '—'
-                  },
-                  { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (t) => (
-                    <span className="flex items-center gap-1">
-                      <StatusChip
-                        variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
-                        ariaLabel={`Transfer status: ${t.status}`}
-                      >
-                        {t.status}
-                      </StatusChip>
-                      {t.lastError && (
-                        <span className="text-status-danger-text" title={t.lastError}>(failed)</span>
-                      )}
-                    </span>
-                  )},
-                ]}
-                data={transfers}
-                keyExtractor={(t) => t.id}
-                emptyMessage="No payouts yet"
-                forceTableLayout
-              />
-            </DataTableShell>
-          )}
-
-          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide mt-2">Completed jobs</h3>
-          {jobsLoading ? (
-            <SitterSkeletonList count={2} />
-          ) : completedJobs.length === 0 ? (
-            <SitterEmptyState
-              title="No completed jobs yet"
-              subtitle="Your earnings will appear here after visits are completed."
-            />
-          ) : (
-            <DataTableShell stickyHeader>
-              <Table
-                columns={[
-                  { key: 'client', header: 'Client', mobileOrder: 1, mobileLabel: 'Client', render: (job) => job.clientName },
-                  { key: 'service', header: 'Service', mobileOrder: 2, mobileLabel: 'Service', hideBelow: 'md', render: (job) => job.service },
-                  { key: 'date', header: 'Date', mobileOrder: 3, mobileLabel: 'Date', render: (job) => formatDate(job.endAt) },
-                  { key: 'amount', header: 'Amount', mobileOrder: 4, mobileLabel: 'Amount', render: (job) => (
-                    <span className="tabular-nums font-semibold">${job.afterSplit.toFixed(2)}</span>
-                  )},
-                ]}
-                data={completedJobs}
-                keyExtractor={(job) => job.id}
-                emptyMessage="No completed jobs yet"
-                onRowClick={(job) => setSelectedJob(job as CompletedJob)}
-                forceTableLayout
-              />
-            </DataTableShell>
-          )}
 
           <p className="text-center text-xs text-text-tertiary">
             Earnings are based on completed bookings. Payouts are sent to your connected Stripe account.

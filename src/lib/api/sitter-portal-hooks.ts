@@ -46,10 +46,11 @@ export function useSitterBookingDetail(id: string | null) {
   });
 }
 
-export function useSitterEarnings() {
+export function useSitterEarnings(from?: string, to?: string) {
+  const params = from ? `?from=${from}${to ? `&to=${to}` : ''}` : '';
   return useQuery({
-    queryKey: ['sitter', 'earnings'],
-    queryFn: () => sitterFetch('/api/sitter/earnings'),
+    queryKey: ['sitter', 'earnings', from, to],
+    queryFn: () => sitterFetch(`/api/sitter/earnings${params}`),
   });
 }
 
@@ -245,6 +246,32 @@ export function useRemoveSitterBlockOff() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sitter', 'availability'] });
       qc.invalidateQueries({ queryKey: ['sitter', 'profile'] });
+    },
+  });
+}
+
+export function useCreateAvailabilityRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { daysOfWeek: number[]; startTime: string; endTime: string }) =>
+      sitterFetch('/api/sitter/availability-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sitter', 'availability'] });
+    },
+  });
+}
+
+export function useDeleteAvailabilityRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      sitterFetch(`/api/sitter/availability-rules/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sitter', 'availability'] });
     },
   });
 }

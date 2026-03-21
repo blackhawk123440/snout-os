@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  MapPin, RefreshCw, Clock, CalendarCheck, TrendingUp,
+  MapPin, RefreshCw, Clock, CalendarCheck, TrendingUp, ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { statusBadgeClass, statusLabel } from '@/lib/status-colors';
@@ -762,6 +762,24 @@ export default function SitterTodayPage() {
               <Button variant="secondary" size="md" onClick={() => router.push('/sitter/availability')}>
                 Update availability
               </Button>
+            </div>
+            {/* Secondary context for empty days */}
+            <div className="mt-4 rounded-2xl bg-surface-primary shadow-sm p-5">
+              <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">While you're off</h3>
+              <div className="space-y-3">
+                <button type="button" onClick={() => router.push('/sitter/reports')} className="flex items-center gap-3 w-full text-left min-h-[44px] rounded-xl bg-surface-secondary px-4 py-2.5 hover:bg-surface-tertiary transition">
+                  <span className="text-sm font-medium text-text-primary">Catch up on reports</span>
+                  <ChevronRight className="h-4 w-4 text-text-tertiary ml-auto" />
+                </button>
+                <button type="button" onClick={() => router.push('/sitter/performance')} className="flex items-center gap-3 w-full text-left min-h-[44px] rounded-xl bg-surface-secondary px-4 py-2.5 hover:bg-surface-tertiary transition">
+                  <span className="text-sm font-medium text-text-primary">Review your performance</span>
+                  <ChevronRight className="h-4 w-4 text-text-tertiary ml-auto" />
+                </button>
+                <button type="button" onClick={() => router.push('/sitter/training')} className="flex items-center gap-3 w-full text-left min-h-[44px] rounded-xl bg-surface-secondary px-4 py-2.5 hover:bg-surface-tertiary transition">
+                  <span className="text-sm font-medium text-text-primary">Continue training</span>
+                  <ChevronRight className="h-4 w-4 text-text-tertiary ml-auto" />
+                </button>
+              </div>
             </div>
           </div>
         ) : (

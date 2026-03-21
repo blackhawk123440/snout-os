@@ -12,7 +12,8 @@ import {
   SitterSkeletonList,
   SitterErrorState,
 } from '@/components/sitter';
-import { useSitterAvailabilityFull, useToggleSitterAvailability, useAddSitterBlockOff, useRemoveSitterBlockOff } from '@/lib/api/sitter-portal-hooks';
+import { Trash2 } from 'lucide-react';
+import { useSitterAvailabilityFull, useToggleSitterAvailability, useAddSitterBlockOff, useRemoveSitterBlockOff, useCreateAvailabilityRule, useDeleteAvailabilityRule } from '@/lib/api/sitter-portal-hooks';
 
 interface BlockOffDay {
   id: string;
@@ -50,9 +51,15 @@ export default function SitterAvailabilityPage() {
   const overrides: AvailabilityOverride[] = Array.isArray(data?.overrides) ? data.overrides : [];
   const preview: PreviewWindow[] = Array.isArray(data?.preview) ? data.preview : [];
 
+  const [newRuleDays, setNewRuleDays] = useState<number[]>([]);
+  const [newRuleStart, setNewRuleStart] = useState('09:00');
+  const [newRuleEnd, setNewRuleEnd] = useState('17:00');
+
   const toggleMutation = useToggleSitterAvailability();
   const addBlockMutation = useAddSitterBlockOff();
   const removeBlockMutation = useRemoveSitterBlockOff();
+  const createRuleMutation = useCreateAvailabilityRule();
+  const deleteRuleMutation = useDeleteAvailabilityRule();
 
   const toggleAvailability = () => {
     toggleMutation.mutate(!availabilityEnabled, {
@@ -71,6 +78,27 @@ export default function SitterAvailabilityPage() {
   const removeBlockOff = (id: string) => {
     removeBlockMutation.mutate(id, {
       onError: () => toastError('Failed to remove'),
+    });
+  };
+
+  const toggleDay = (day: number) => {
+    setNewRuleDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort());
+  };
+
+  const addRule = () => {
+    if (newRuleDays.length === 0 || !newRuleStart || !newRuleEnd) return;
+    createRuleMutation.mutate(
+      { daysOfWeek: newRuleDays, startTime: newRuleStart, endTime: newRuleEnd },
+      {
+        onSuccess: () => { setNewRuleDays([]); setNewRuleStart('09:00'); setNewRuleEnd('17:00'); },
+        onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to add rule'),
+      }
+    );
+  };
+
+  const deleteRule = (id: string) => {
+    deleteRuleMutation.mutate(id, {
+      onError: () => toastError('Failed to delete rule'),
     });
   };
 
@@ -156,14 +184,58 @@ export default function SitterAvailabilityPage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <p className="font-medium text-text-primary">Recurring availability</p>
+              <p className="font-medium text-text-primary">Weekly schedule</p>
             </SitterCardHeader>
             <SitterCardBody>
-              <p className="mb-3 text-sm text-text-tertiary">Weekly windows when you&apos;re available (e.g., Mon–Fri 9–5)</p>
-              {rules.length === 0 ? (
-                <p className="text-sm text-text-tertiary">No recurring rules. Add rules via API or ops.</p>
-              ) : (
-                <ul className="space-y-2">
+              <p className="mb-4 text-sm text-text-tertiary">Set when you&apos;re available each week</p>
+
+              {/* Day picker */}
+              <div className="flex gap-1.5 mb-3">
+                {(['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const).map((label, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => toggleDay(i)}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold transition ${
+                      newRuleDays.includes(i)
+                        ? 'bg-accent-primary text-text-inverse'
+                        : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Time range */}
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="time"
+                  value={newRuleStart}
+                  onChange={(e) => setNewRuleStart(e.target.value)}
+                  className="rounded-xl border border-border-strong bg-surface-primary px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
+                />
+                <span className="text-sm text-text-tertiary">to</span>
+                <input
+                  type="time"
+                  value={newRuleEnd}
+                  onChange={(e) => setNewRuleEnd(e.target.value)}
+                  className="rounded-xl border border-border-strong bg-surface-primary px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
+                />
+              </div>
+
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => void addRule()}
+                disabled={newRuleDays.length === 0 || !newRuleStart || !newRuleEnd || createRuleMutation.isPending}
+              >
+                {createRuleMutation.isPending ? 'Adding...' : 'Add schedule'}
+              </Button>
+
+              {/* Existing rules */}
+              {rules.length > 0 && (
+                <ul className="mt-4 space-y-2">
                   {rules.map((r) => {
                     const days = (() => {
                       try {
@@ -176,8 +248,20 @@ export default function SitterAvailabilityPage() {
                     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     const labels = days.map((i: number) => dayNames[i]).join(', ');
                     return (
-                      <li key={r.id} className="rounded-lg bg-surface-secondary px-3 py-2 text-sm">
-                        {labels}: {r.startTime}–{r.endTime}
+                      <li key={r.id} className="flex items-center justify-between rounded-xl bg-surface-secondary px-4 py-3 text-sm">
+                        <div>
+                          <p className="font-medium text-text-primary">{labels}</p>
+                          <p className="text-xs text-text-tertiary">{r.startTime} – {r.endTime}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void deleteRule(r.id)}
+                          disabled={deleteRuleMutation.isPending}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary hover:bg-status-danger-bg hover:text-status-danger-text transition"
+                          aria-label="Delete rule"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </li>
                     );
                   })}
