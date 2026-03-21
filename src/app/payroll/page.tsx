@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
+import { toastError } from '@/lib/toast';
 import {
   Card,
   Button,
@@ -85,7 +86,7 @@ export default function PayrollPage() {
       const data = await response.json();
       setRuns(data.payPeriods || []);
     } catch (error) {
-      console.error('Failed to fetch payroll:', error);
+      // fetch error handled by empty state
       setRuns([]);
     } finally {
       setLoading(false);
@@ -107,7 +108,7 @@ export default function PayrollPage() {
         setDetail(data as PayrollRunDetail);
       }
     } catch (error) {
-      console.error('Failed to fetch run details:', error);
+      toastError('Failed to load run details');
     } finally {
       setDetailLoading(false);
     }
@@ -130,11 +131,11 @@ export default function PayrollPage() {
         fetchPayroll();
       } else {
         const json = await response.json().catch(() => ({}));
-        alert(json.error || 'Failed to approve');
+        toastError(json.error || 'Failed to approve');
       }
     } catch (error) {
-      console.error('Failed to approve:', error);
-      alert('Failed to approve. Please try again.');
+      // approval error handled above via toastError
+      toastError('Failed to approve. Please try again.');
     } finally {
       setApproving(false);
     }
@@ -155,8 +156,8 @@ export default function PayrollPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export payroll:', error);
-      alert('Failed to export payroll. Please try again.');
+      // export error handled above via toastError
+      toastError('Failed to export payroll.');
     }
   }, []);
 
@@ -296,7 +297,7 @@ export default function PayrollPage() {
                 <div className="mb-1 text-sm text-text-secondary">
                   Total payout (all runs)
                 </div>
-                <div className="text-2xl font-bold text-success">
+                <div className="text-2xl font-bold text-status-success-text">
                   {formatCurrency(runs.reduce((s, r) => s + r.totalPayout, 0))}
                 </div>
               </GridCol>
@@ -323,7 +324,7 @@ export default function PayrollPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-text-primary"
+            className="rounded-xl border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary min-h-[44px] focus:border-border-focus focus:outline-none"
             aria-label="Filter by status"
           >
             <option value="all">All statuses</option>
@@ -382,7 +383,7 @@ export default function PayrollPage() {
                   <div className="text-sm text-text-secondary mb-1">
                     Total Payout
                   </div>
-                  <div className="text-xl font-bold text-success">
+                  <div className="text-xl font-bold text-status-success-text">
                     {formatCurrency(detail.run.totalPayout)}
                   </div>
                 </Card>

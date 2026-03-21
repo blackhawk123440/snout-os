@@ -29,7 +29,6 @@ import { CommandLauncher } from '@/components/command';
 import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
-import { tokens } from '@/lib/design-tokens';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar, AppDrawer } from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
@@ -556,7 +555,7 @@ function CalendarPageContent() {
                   key={booking.id}
                   className="p-3 rounded-md bg-surface-primary relative"
                   style={{
-                    border: `1px solid ${inConflict ? tokens.colors.error[300] : svcColor.border}`,
+                    border: `1px solid ${inConflict ? 'var(--color-status-danger-border)' : svcColor.border}`,
                     borderLeft: `4px solid ${svcColor.border}`,
                   }}
                 >
@@ -568,10 +567,10 @@ function CalendarPageContent() {
                     }}
                     className="w-full text-left cursor-pointer bg-transparent border-none p-0"
                     onMouseEnter={(e) => {
-                      e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.accent.secondary;
+                      e.currentTarget.closest('div')!.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-secondary').trim();
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.surface.primary;
+                      e.currentTarget.closest('div')!.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--color-surface-primary').trim();
                     }}
                   >
                     <div className="flex justify-between items-start mb-1">
@@ -670,14 +669,14 @@ function CalendarPageContent() {
                       }}
                       className="p-2 rounded-sm bg-surface-primary text-left cursor-pointer text-xs w-full"
                       style={{
-                        border: `1px solid ${inConflict ? tokens.colors.error[300] : tokens.colors.border.default}`,
+                        border: `1px solid ${inConflict ? 'var(--color-status-danger-border)' : 'var(--color-border-default)'}`,
                       }}
                       title={`${booking.firstName} ${booking.lastName} · ${booking.service}${inConflict ? ' · Conflict' : ''}`}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
+                        e.currentTarget.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-secondary').trim();
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                        e.currentTarget.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--color-surface-primary').trim();
                       }}
                     >
                       <div className="flex items-center gap-1">
