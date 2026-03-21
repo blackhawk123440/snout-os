@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, ChevronRight } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
@@ -48,11 +48,21 @@ export default function ClientBookingsPage() {
   const formatTime = (d: string) =>
     new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+  const allBookings = displayed;
+  const upcomingCount = allBookings.filter(b => !['completed', 'cancelled', 'no_show'].includes(b.status.toLowerCase())).length;
+  const pastCount = allBookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status.toLowerCase())).length;
+
   const filtered = displayed.filter((b) => {
     if (activeTab === 'All') return true;
     const isPast = ['completed', 'cancelled', 'no_show'].includes(b.status.toLowerCase());
     return activeTab === 'Past' ? isPast : !isPast;
   });
+
+  const tabCounts: Record<TabFilter, number | null> = {
+    All: total || allBookings.length,
+    Upcoming: upcomingCount,
+    Past: pastCount,
+  };
 
   return (
     <LayoutWrapper variant="narrow">
@@ -96,20 +106,25 @@ export default function ClientBookingsPage() {
         </div>
       ) : (
         <div className="space-y-4 mt-4">
-          {/* Filter tabs */}
-          <div className="inline-flex rounded-xl bg-surface-secondary p-1">
+          {/* Filter tabs with counts */}
+          <div className="inline-flex rounded-2xl bg-surface-secondary p-1">
             {(['All', 'Upcoming', 'Past'] as TabFilter[]).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium min-h-[36px] transition-all ${
+                className={`rounded-xl px-4 py-2 text-[13px] font-semibold min-h-[36px] transition-all flex items-center gap-1.5 ${
                   activeTab === tab
                     ? 'bg-surface-primary shadow-sm text-text-primary'
-                    : 'text-text-secondary hover:text-text-primary'
+                    : 'text-text-tertiary hover:text-text-primary'
                 }`}
               >
                 {tab}
+                {tabCounts[tab] != null && tabCounts[tab]! > 0 && (
+                  <span className={`text-[11px] tabular-nums ${activeTab === tab ? 'text-text-secondary' : 'text-text-disabled'}`}>
+                    {tabCounts[tab]}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -117,31 +132,38 @@ export default function ClientBookingsPage() {
           {/* Booking list */}
           <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
             <div className="divide-y divide-border-muted">
-              {filtered.map((booking) => {
+              {filtered.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-[14px] text-text-tertiary">No {activeTab.toLowerCase()} bookings</p>
+                </div>
+              ) : filtered.map((booking) => {
                 const isCompleted = ['completed', 'cancelled', 'no_show'].includes(booking.status.toLowerCase());
                 return (
                   <div
                     key={booking.id}
-                    className={`flex items-center gap-3 px-5 py-3.5 min-h-[56px] cursor-pointer hover:bg-surface-secondary transition-colors ${isCompleted ? 'opacity-50' : ''}`}
+                    className={`flex items-center gap-3 px-5 py-3.5 min-h-[64px] cursor-pointer hover:bg-surface-secondary transition-colors ${isCompleted ? 'opacity-50' : ''}`}
                     onClick={() => router.push(`/client/bookings/${booking.id}`)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${booking.id}`)}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-tertiary text-sm font-bold text-accent-primary">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-tertiary text-sm font-bold text-accent-primary">
                       {booking.service?.[0] || 'V'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-text-primary truncate">{booking.service}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[14px] font-semibold text-text-primary truncate">{booking.service}</p>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`h-2 w-2 rounded-full ${statusDotClass(booking.status)}`} />
+                          <span className="text-[11px] font-medium text-text-tertiary">{statusLabel(booking.status)}</span>
+                        </div>
+                      </div>
                       <p className="text-[12px] text-text-secondary tabular-nums mt-0.5">
                         {formatDate(booking.startAt)} {'\u00b7'} {formatTime(booking.startAt)}
                         {booking.sitter?.name ? ` \u00b7 ${booking.sitter.name}` : ''}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`h-2 w-2 rounded-full ${statusDotClass(booking.status)}`} />
-                      <span className="text-xs font-medium text-text-tertiary">{statusLabel(booking.status)}</span>
-                    </div>
+                    <ChevronRight className="h-4 w-4 text-text-disabled shrink-0" />
                   </div>
                 );
               })}
@@ -170,16 +192,15 @@ export default function ClientBookingsPage() {
 function BookingsSkeleton() {
   return (
     <div className="space-y-4 animate-pulse mt-4">
-      <div className="h-10 w-48 rounded-xl bg-surface-tertiary" />
+      <div className="h-10 w-56 rounded-2xl bg-surface-tertiary" />
       <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-            <div className="h-10 w-10 rounded-2xl bg-surface-tertiary shrink-0" />
+            <div className="h-11 w-11 rounded-2xl bg-surface-tertiary shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-32 rounded bg-surface-tertiary" />
+              <div className="h-4 w-36 rounded bg-surface-tertiary" />
               <div className="h-3 w-48 rounded bg-surface-tertiary" />
             </div>
-            <div className="h-2 w-2 rounded-full bg-surface-tertiary" />
           </div>
         ))}
       </div>

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText } from 'lucide-react';
+import { FileText, ChevronRight } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
@@ -25,6 +25,10 @@ export default function ClientReportsPage() {
 
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+
+  // Split: most recent gets hero treatment, rest go in a list
+  const heroReport = reports[0] || null;
+  const restReports = reports.slice(1);
 
   return (
     <LayoutWrapper variant="narrow">
@@ -63,47 +67,106 @@ export default function ClientReportsPage() {
         </div>
       ) : (
         <div className="space-y-4 mt-4">
-          {reports.map((report) => {
-            const photo = parseFirstPhoto(report.mediaUrls);
-            const preview = report.personalNote?.slice(0, 120) || report.content?.slice(0, 120) || '';
+          {/* Hero report — most recent, full card */}
+          {heroReport && (() => {
+            const photo = parseFirstPhoto(heroReport.mediaUrls);
+            const preview = heroReport.personalNote?.slice(0, 160) || heroReport.content?.slice(0, 160) || '';
             return (
               <div
-                key={report.id}
                 className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition"
-                onClick={() => router.push(`/client/reports/${report.id}`)}
+                onClick={() => router.push(`/client/reports/${heroReport.id}`)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${report.id}`)}
+                onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${heroReport.id}`)}
               >
                 {photo && (
-                  <img src={photo} alt="Visit photo" className="w-full h-[180px] object-cover" />
+                  <img src={photo} alt="Visit photo" className="w-full h-[200px] object-cover" />
                 )}
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h3 className="text-[14px] font-semibold text-text-primary">
-                      {report.booking?.service || 'Visit report'}
-                    </h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">Latest report</p>
                     <p className="text-[11px] text-text-tertiary tabular-nums shrink-0">
-                      {report.createdAt ? formatDate(report.createdAt) : '\u2014'}
+                      {heroReport.createdAt ? formatDate(heroReport.createdAt) : '\u2014'}
                     </p>
                   </div>
-                  <p className="text-[14px] text-text-secondary line-clamp-2 leading-relaxed">{preview}</p>
+                  <h3 className="text-[16px] font-semibold text-text-primary mt-1">
+                    {heroReport.booking?.service || 'Visit report'}
+                  </h3>
+                  <p className="text-[14px] text-text-secondary line-clamp-2 leading-relaxed mt-1">{preview}</p>
                   <div className="flex items-center justify-between mt-3">
-                    {report.sitterName && (
-                      <p className="text-[12px] text-text-tertiary">with {report.sitterName}</p>
-                    )}
-                    {report.clientRating != null && (
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <span key={star} className={`text-sm ${star <= report.clientRating! ? 'text-status-warning-fill' : 'text-border-default'}`}>{'\u2605'}</span>
-                        ))}
-                      </div>
+                    <div className="flex items-center gap-3">
+                      {heroReport.sitterName && (
+                        <p className="text-[12px] text-text-tertiary">with {heroReport.sitterName}</p>
+                      )}
+                      {heroReport.clientRating != null && (
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-sm ${star <= heroReport.clientRating! ? 'text-status-warning-fill' : 'text-border-default'}`}>{'\u2605'}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {heroReport.clientRating == null && (
+                      <span className="text-[12px] font-medium text-accent-primary">Rate this visit</span>
                     )}
                   </div>
                 </div>
               </div>
             );
-          })}
+          })()}
+
+          {/* Remaining reports — compact unified list */}
+          {restReports.length > 0 && (
+            <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
+              <div className="px-5 pt-5 pb-3">
+                <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Previous reports</h2>
+              </div>
+              <div className="divide-y divide-border-muted">
+                {restReports.map((report) => {
+                  const photo = parseFirstPhoto(report.mediaUrls);
+                  return (
+                    <div
+                      key={report.id}
+                      className="flex items-center gap-3 px-5 py-3.5 min-h-[64px] cursor-pointer hover:bg-surface-secondary transition-colors"
+                      onClick={() => router.push(`/client/reports/${report.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${report.id}`)}
+                    >
+                      {photo ? (
+                        <img src={photo} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-accent-tertiary flex items-center justify-center shrink-0">
+                          <FileText className="h-5 w-5 text-accent-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-text-primary truncate">
+                          {report.booking?.service || 'Visit report'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[12px] text-text-tertiary tabular-nums">
+                            {report.createdAt ? formatDate(report.createdAt) : '\u2014'}
+                          </p>
+                          {report.sitterName && (
+                            <p className="text-[12px] text-text-tertiary">{'\u00b7'} {report.sitterName}</p>
+                          )}
+                        </div>
+                        {report.clientRating != null && (
+                          <div className="flex items-center gap-0.5 mt-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className={`text-[11px] ${star <= report.clientRating! ? 'text-status-warning-fill' : 'text-border-default'}`}>{'\u2605'}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-text-disabled shrink-0" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </LayoutWrapper>
@@ -113,16 +176,29 @@ export default function ClientReportsPage() {
 function ReportsSkeleton() {
   return (
     <div className="space-y-4 animate-pulse mt-4">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
-          <div className="h-[180px] bg-surface-tertiary" />
-          <div className="p-5 space-y-2">
-            <div className="h-4 w-32 rounded bg-surface-tertiary" />
-            <div className="h-3 w-full rounded bg-surface-tertiary" />
-            <div className="h-3 w-2/3 rounded bg-surface-tertiary" />
-          </div>
+      <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
+        <div className="h-[200px] bg-surface-tertiary" />
+        <div className="p-5 space-y-2">
+          <div className="h-3 w-20 rounded bg-surface-tertiary" />
+          <div className="h-5 w-32 rounded bg-surface-tertiary" />
+          <div className="h-3 w-full rounded bg-surface-tertiary" />
+          <div className="h-3 w-2/3 rounded bg-surface-tertiary" />
         </div>
-      ))}
+      </div>
+      <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
+        <div className="px-5 pt-5 pb-3">
+          <div className="h-3 w-28 rounded bg-surface-tertiary" />
+        </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+            <div className="w-12 h-12 rounded-xl bg-surface-tertiary shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-32 rounded bg-surface-tertiary" />
+              <div className="h-3 w-40 rounded bg-surface-tertiary" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

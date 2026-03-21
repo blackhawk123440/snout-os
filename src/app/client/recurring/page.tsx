@@ -77,9 +77,11 @@ export default function ClientRecurringPage() {
         </div>
         <div className="flex items-center gap-2">
           <ClientRefreshButton onRefresh={refetch} />
-          <Link href="/client/bookings/new">
-            <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>New</Button>
-          </Link>
+          {schedules.length > 0 && (
+            <Link href="/client/bookings/new">
+              <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>New</Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -192,7 +194,11 @@ function ScheduleCard({
   return (
     <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-tertiary text-sm font-bold text-accent-primary mt-0.5">
+            {(schedule.service || 'S')[0]}
+          </div>
+          <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-[15px] font-semibold text-text-primary truncate">
               {schedule.service}
@@ -217,6 +223,7 @@ function ScheduleCard({
               Until {new Date(schedule.effectiveUntil).toLocaleDateString()}
             </p>
           )}
+          </div>
         </div>
         {schedule.status !== 'cancelled' && (
           <div className="flex items-center gap-2 shrink-0">

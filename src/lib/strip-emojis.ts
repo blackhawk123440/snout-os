@@ -25,7 +25,11 @@ export function renderClientPreview(
   text: string,
   maxLength: number = DEFAULT_PREVIEW_LENGTH
 ): string {
-  const stripped = stripEmojisFromPreview(text);
+  const stripped = stripEmojisFromPreview(text)
+    // Strip URLs (http/https/localhost) from client-facing previews
+    .replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (stripped.length <= maxLength) return stripped;
   return stripped.slice(0, maxLength).trim() + "…";
 }

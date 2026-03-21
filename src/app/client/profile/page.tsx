@@ -57,14 +57,32 @@ export default function ClientProfilePage() {
         <AppErrorState title="Couldn't load profile" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
       ) : profileData ? (
         <div className="space-y-4 mt-4 pb-8">
+          {/* Account header */}
+          <div className="rounded-2xl bg-accent-tertiary p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-accent-primary flex items-center justify-center shrink-0">
+                <span className="text-xl font-bold text-text-inverse">
+                  {(profileData.firstName || profileData.name || 'C').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[16px] font-semibold text-text-primary truncate">{profileData.name || 'Client'}</p>
+                {profileData.email && <p className="text-[13px] text-text-secondary truncate mt-0.5">{profileData.email}</p>}
+              </div>
+            </div>
+          </div>
+
           <EditableProfileSection data={profileData} onSaved={refetch} />
           <HomeAccessSection data={profileData} onSaved={refetch} />
           <EmergencyContactsSection contacts={contacts} onChanged={refetch} />
           <ReferralSection />
 
-          <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
-            <div className="space-y-2">
-              <a href="/client/settings/export" className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition-colors">
+          <div className="rounded-2xl border border-border-default bg-surface-primary shadow-sm overflow-hidden">
+            <div className="px-5 pt-5 pb-3">
+              <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Account</h3>
+            </div>
+            <div className="px-5 pb-5 space-y-2">
+              <a href="/client/settings/export" className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-surface-primary px-4 text-[13px] font-medium text-text-secondary hover:bg-surface-secondary transition-colors">
                 Export your data
               </a>
               <Button variant="secondary" size="md" onClick={() => signOut({ callbackUrl: '/login' })} className="w-full">
@@ -73,7 +91,7 @@ export default function ClientProfilePage() {
             </div>
           </div>
 
-          <div className="pt-8 mt-4 border-t border-border-muted">
+          <div className="pt-6 mt-2 border-t border-border-muted">
             <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
               <p className="mb-2 text-[14px] font-semibold text-text-primary">Delete account</p>
               <p className="mb-3 text-[13px] text-text-tertiary">Permanently delete your account. This cannot be undone.</p>

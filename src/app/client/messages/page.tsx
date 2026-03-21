@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, ChevronRight } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
@@ -14,8 +14,19 @@ export default function ClientMessagesPage() {
   const { data, isLoading: loading, error, refetch } = useClientMessages();
   const threads = data?.threads ?? [];
 
-  const formatDate = (d: string | null) =>
-    d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+  const formatRelative = (d: string | null) => {
+    if (!d) return '';
+    const now = Date.now();
+    const then = new Date(d).getTime();
+    const mins = Math.floor((now - then) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
   return (
     <LayoutWrapper variant="narrow">
@@ -53,39 +64,55 @@ export default function ClientMessagesPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden mt-4">
-          <div className="divide-y divide-border-muted">
-            {threads.map((thread) => {
-              const sitterName = thread.sitter?.name || thread.booking?.service || 'Conversation';
-              const sitterInitial = sitterName.charAt(0).toUpperCase();
-              const previewText = thread.preview
-                ? renderClientPreview(thread.preview).trim()
-                : thread.booking?.service && thread.booking.startAt
-                  ? `${thread.booking.service} \u00b7 ${formatDate(thread.booking.startAt)}`
-                  : '\u2014';
+        <div className="mt-4 space-y-4">
+          <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
+            <div className="px-5 pt-5 pb-3">
+              <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Conversations</h2>
+            </div>
+            <div className="divide-y divide-border-muted">
+              {threads.map((thread) => {
+                const sitterName = thread.sitter?.name || 'Sitter';
+                const sitterInitial = sitterName.charAt(0).toUpperCase();
+                const serviceName = thread.booking?.service || null;
+                const rawPreview = thread.preview
+                  ? renderClientPreview(thread.preview, 80).trim()
+                  : null;
+                const previewText = rawPreview || serviceName || 'No messages yet';
+                const isUnread = thread.status === 'unread';
 
-              return (
-                <Link key={thread.id} href={`/client/messages/${thread.id}`}>
-                  <div className="flex items-center gap-3 px-5 py-4 min-h-[64px] cursor-pointer hover:bg-surface-secondary transition-colors">
-                    <div className="w-10 h-10 rounded-2xl bg-accent-tertiary flex items-center justify-center text-sm font-bold text-accent-primary shrink-0">
+                return (
+                  <div
+                    key={thread.id}
+                    className="flex items-center gap-3 px-5 py-4 min-h-[72px] cursor-pointer hover:bg-surface-secondary transition-colors"
+                    onClick={() => router.push(`/client/messages/${thread.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/messages/${thread.id}`)}
+                  >
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 ${isUnread ? 'bg-accent-primary text-text-inverse' : 'bg-accent-tertiary text-accent-primary'}`}>
                       {sitterInitial}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-text-primary truncate">{sitterName}</p>
+                        <p className={`text-[14px] truncate ${isUnread ? 'font-bold text-text-primary' : 'font-semibold text-text-primary'}`}>
+                          {sitterName}
+                        </p>
                         <p className="text-[11px] text-text-tertiary tabular-nums shrink-0">
-                          {thread.lastActivityAt ? formatDate(thread.lastActivityAt) : '\u2014'}
+                          {formatRelative(thread.lastActivityAt)}
                         </p>
                       </div>
-                      <p className="text-sm text-text-secondary truncate mt-0.5">{previewText}</p>
+                      {serviceName && (
+                        <p className="text-[12px] text-text-tertiary mt-0.5">{serviceName}</p>
+                      )}
+                      <p className={`text-[13px] truncate mt-0.5 ${isUnread ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+                        {previewText}
+                      </p>
                     </div>
-                    {thread.status === 'unread' && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-accent-primary shrink-0" />
-                    )}
+                    <ChevronRight className="h-4 w-4 text-text-disabled shrink-0" />
                   </div>
-                </Link>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -95,13 +122,17 @@ export default function ClientMessagesPage() {
 
 function MessagesSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse mt-4">
-      <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
+    <div className="mt-4">
+      <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden animate-pulse">
+        <div className="px-5 pt-5 pb-3">
+          <div className="h-3 w-24 rounded bg-surface-tertiary" />
+        </div>
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-3 px-5 py-4">
-            <div className="w-10 h-10 rounded-2xl bg-surface-tertiary shrink-0" />
+            <div className="w-11 h-11 rounded-2xl bg-surface-tertiary shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-32 rounded bg-surface-tertiary" />
+              <div className="h-4 w-28 rounded bg-surface-tertiary" />
+              <div className="h-3 w-16 rounded bg-surface-tertiary" />
               <div className="h-3 w-48 rounded bg-surface-tertiary" />
             </div>
           </div>
